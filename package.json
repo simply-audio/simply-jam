@@ -1,0 +1,13 @@
+{
+  "name": "simply-jam",
+  "version": "0.1.0",
+  "description": "Perform with tussen together with an agent: skills for driving a running hub, shaders, and musical guidance.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["pi-package", "tussen", "vj", "live-visuals", "shaders", "osc", "midi"],
+  "homepage": "https://simply.audio/tussen",
+  "repository": { "type": "git", "url": "https://github.com/simply-audio/simply-jam" },
+  "pi": {
+    "skills": ["./skills"]
+  }
+}
