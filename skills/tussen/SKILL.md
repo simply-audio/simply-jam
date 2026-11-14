@@ -56,6 +56,7 @@ Names you will get wrong otherwise:
 - **The scene's folder** is `~/Music/tussen/scenes/<scene>/` (`get_state` →
   `scene.current`); its shaders live in `shaders/`, and paths are relative to
   the scene's folder (`shaders/x.fs`).
+- **The Shaders tab** (⌘7, once an output has a shader) is where the operator edits shader files in the app: Apply (⌘S) writes only once it compiles. Scene files and their shader library are editable; Standard shaders are read-only.
 - **What the hub has seen** (a controller's real addresses): have someone
   press, then `filter_preview {"filter":["/tussen/local/midi/"]}`.
 
@@ -66,7 +67,7 @@ Names you will get wrong otherwise:
 | an output from the camera | `add_video_output {name:"stage", inputs:["cam"], ndi?}` (shaders live on outputs, never on a channel) |
 | two pictures combined | `set_video_inputs {output, inputs:["cam", {"name":"plate","channel":"td"}]}`; a shader's `image` inputs named `cam` and `plate` read them by name (`set_shader_bind` to say otherwise) |
 | a shader on the output | write `shaders/x.fs`, then `add_shader {output, file, index?}`, then `list_shaders` (its `missing` says what reads black) |
-| change a shader | save the file (it reloads), then `list_shaders` for `running` and `error` |
+| change a shader | read it (`list_shaders` gives each shader's `path`), then `check_shader {output, slot, source}` with the whole new text: write the file only if `ok` (the hub reloads it within ¼ s); if not, fix `error.line` (a line in the source you sent) and check again. A broken save never stops the picture, but checking first means the operator never sees an error |
 | a slider follows a pad's pressure | `set_shader_param_source {output, slot, param, source:{"osc":"/tussen/local/midi/launchpad-x-lpx-midi-out/1/note/43/pressure"}}` (the exact address: device and channel from `filter_preview`) |
 | a slider follows the music | source `"beat"`, `"bar"`, `{"level":"main"}` (+ `set_shader_param_level` for its span and smoothing) |
 | switch shaders from a pad | map the pad to `swap/video/<output>/shader/<a>/<b>…/<step>/<when>` (`set_controller_mapping`) |
