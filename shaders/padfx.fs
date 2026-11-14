@@ -1,5 +1,5 @@
 /*{
-  "DESCRIPTION": "Pad FX: 24 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, mirror, tile, ripple, twirl, pixel, slices, patches: a few random regions pixelate, shove or stretch and jump to new places on every beat and kick, harder = more and stronger patches, glitch), reads (RGB split, blur, figure lift: the bright parts pushed forward over a darkened room, swelling on the kick), memory (trails, tunnel, datamosh drag: blocks of the last frame dragged along, a kick lets the live picture back in; echo: a ghost of the picture one beat ago), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak flaring on kicks and flickering with the highs, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live.",
+  "DESCRIPTION": "Pad FX: 32 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, liquid: the picture flows like water on the mids, mirror, tile, ripple, twirl, pixel, slices, patches: a few random regions pixelate, shove or stretch and jump to new places on every beat and kick, harder = more and stronger patches, drip: columns run down over each bar and snap back on the downbeat, tear: a band torn sideways that jumps on every beat and shoves on the kick, glitch), reads (RGB split, blur, figure lift: the bright parts pushed forward over a darkened room, swelling on the kick, chromatic bloom: bright parts glow with colour fringes, swelling on the mids and kick, neon edges: outlines in a colour that changes every beat over a darkened picture), memory (trails, tunnel, datamosh drag: blocks of the last frame dragged along, a kick lets the live picture back in; echo: a ghost of the picture one beat ago, slit-scan: past the slit the picture streams away sideways, the slit jumping every bar and streaming faster on the lows, colour lag: green and blue run behind red so movement leaves colour trails, a kick snaps them back), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak flaring on kicks and flickering with the highs, film burn: holes burn through the picture with hot orange rims, growing on the lows and flaring on the kick, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live.",
   "CREDIT": "audiodev set; maths from the simply-creative FX library (12, 13, 23, 26, 27, 28, 41, 42, 50, 52, 71, 95, 131 …)",
   "CATEGORIES": ["performance-pads", "feedback", "history", "sound", "beat", "pressure"],
   "INPUTS": [
@@ -7,6 +7,7 @@
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
     { "NAME": "fx_zoom", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_liquid", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_mirror", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_tile", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_ripple", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
@@ -14,20 +15,27 @@
     { "NAME": "fx_pixel", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_slices", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_patches", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_drip", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_tear", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_glitch", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_rgb", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_blur", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_lift", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_bloom", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_edges", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_trails", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_tunnel", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_drag", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_echo", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_slit", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_colourlag", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_invert", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_mono", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_hue", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_posterize", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_thermal", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_leak", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_burn", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_blackout", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_scan", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "gain", "TYPE": "float", "MIN": 0.25, "MAX": 8.0, "DEFAULT": 1.0 }
@@ -42,6 +50,11 @@
 
 // ── grab these first ────────────────────────────────────────────────
 const float ZOOM_MAX    = 0.45;  // fraction of the frame cut away at full press
+const float LIQUID_AMP  = 0.03;  // uv the liquid flow moves the picture at full press
+const float DRIP_MAX    = 0.35;  // how far the longest drip runs by the end of a bar at full press
+const float BLOOM_R     = 0.035; // bloom radius (uv) at full press
+const float EDGE_PX     = 1.5;   // edge detector reach in pixels
+const float SLIT_SPEED  = 0.006; // uv per frame the past streams away from the slit
 const vec2  PATCH_GRID  = vec2(7.0, 4.0); // patches live one per cell of this grid, at most
 const float PATCH_SHARE = 0.4;   // share of cells holding a patch at full press (a light press: about 1 in 12)
 const float LIFT_GROW   = 0.10;  // how much bigger the lifted figure gets at full press
@@ -127,6 +140,13 @@ vec2 warpUV(vec2 uv, float kick) {
   float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
   vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
   if (fx_zoom > 0.001) { p *= 1.0 - ZOOM_MAX * fx_zoom * (0.8 + 0.2 * kick); }
+  if (fx_liquid > 0.001) {
+    // liquid: two layers of folded sines flowing at different speeds; the mids stir it harder
+    vec2 w = vec2(sin(p.y * 5.0 + TIME * 0.9 + 1.5 * sin(p.x * 3.0 - TIME * 0.6)),
+                  sin(p.x * 4.0 - TIME * 0.7 + 1.5 * sin(p.y * 6.0 + TIME * 0.8)));
+    w += 0.5 * vec2(sin(p.y * 11.0 - TIME * 1.3 + 2.0 * w.y), sin(p.x * 9.0 + TIME * 1.1 + 2.0 * w.x));
+    p += w * LIQUID_AMP * fx_liquid * (0.6 + 0.8 * sigB().g);
+  }
   if (fx_twirl > 0.001) {
     float r = length(p);
     p = rot(p, 6.2831853 * TWIRL_TURNS * fx_twirl * smoothstep(0.7, 0.0, r));
@@ -176,6 +196,24 @@ vec2 warpUV(vec2 uv, float kick) {
         q.x = mix(q.x, edge, s) + (hash(vec2(row, floor(TIME * 15.0))) - 0.5) * 0.01 * s;
       }
     }
+  }
+  if (fx_drip > 0.001) {
+    // drip: each column runs down by its own length over the bar (the lows lengthen it) and snaps back on the downbeat
+    float cx = q.x * 90.0;
+    float c0 = hash(vec2(floor(cx), 3.0));
+    float c1 = hash(vec2(floor(cx) + 1.0, 3.0));
+    float len = mix(c0 * c0, c1 * c1, smoothstep(0.0, 1.0, fract(cx)));
+    q.y += DRIP_MAX * fx_drip * len * smoothstep(0.0, 1.0, BAR_PHASE) * (0.6 + 0.6 * sigB().r);
+  }
+  if (fx_tear > 0.001) {
+    // tear: one band torn sideways; a new place and direction every beat, shoved harder on the kick, rolling inside
+    float bt = floor(BEAT);
+    float h = 0.04 + 0.12 * fx_tear;
+    float band = 1.0 - smoothstep(0.8 * h, h, abs(q.y - hash(vec2(bt, 21.0))));
+    float line = floor(q.y * RENDERSIZE.y / 2.0);
+    float shove = (hash(vec2(bt, 22.0)) - 0.5) * 0.4 * fx_tear * (0.6 + 0.6 * kick)
+                + (hash(vec2(line, floor(TIME * 30.0))) - 0.5) * 0.02 * fx_tear;
+    q += band * vec2(shove, 0.02 * fx_tear * sin(TIME * 7.0));
   }
   if (fx_glitch > 0.001) {
     vec2 b = floor(q * vec2(12.0, 8.0));
@@ -231,6 +269,53 @@ vec3 leak(vec2 uv, float kick, float hi) {
   return col * (0.55 + 0.45 * kick + 0.25 * hi * (0.5 + 0.5 * sin(TIME * 40.0)));
 }
 
+// Chromatic bloom: the bright parts spread into a glow, red reaching furthest and blue least.
+vec3 bloom(vec2 q, vec3 c, float kick) {
+  float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
+  vec3 acc = vec3(0.0);
+  for (int i = 0; i < 10; i++) {
+    float a = float(i) * 2.39996;
+    vec2 o = vec2(cos(a), sin(a) * aspect) * sqrt((float(i) + 0.5) / 10.0) * BLOOM_R * (0.5 + 0.5 * fx_bloom);
+    acc.r += max(IMG_NORM_PIXEL(inputImage, q + o * 1.25).r - 0.55, 0.0);
+    acc.g += max(IMG_NORM_PIXEL(inputImage, q + o).g - 0.55, 0.0);
+    acc.b += max(IMG_NORM_PIXEL(inputImage, q + o * 0.8).b - 0.55, 0.0);
+  }
+  return c + acc / 10.0 * 3.0 * fx_bloom * (0.6 + 0.8 * sigB().g + 0.4 * kick);
+}
+
+// Neon edges: the picture's outlines lit in one colour that moves on every beat, over a darkened picture.
+vec3 edges(vec2 q, vec3 c, float kick) {
+  vec2 px = EDGE_PX / max(RENDERSIZE, vec2(1.0));
+  float lx = lumaOf(IMG_NORM_PIXEL(inputImage, q + vec2(px.x, 0.0)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, q - vec2(px.x, 0.0)).rgb);
+  float ly = lumaOf(IMG_NORM_PIXEL(inputImage, q + vec2(0.0, px.y)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, q - vec2(0.0, px.y)).rgb);
+  float e = clamp(length(vec2(lx, ly)) * 6.0, 0.0, 1.0);
+  vec3 neon = clamp(hueRotate(vec3(1.0, 0.15, 0.6), fract(floor(BEAT) * 0.381966)), 0.0, 1.0);
+  vec3 lit = c * 0.25 + neon * e * (1.0 + 0.6 * kick + 0.5 * sigB().b);
+  return mix(c, lit, fx_edges);
+}
+
+// Film burn: holes eat through the picture where a slow noise field falls under the press,
+// rimmed hot orange over a scorched edge; the lows widen them and the kick flares the rims.
+float vnoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+vec3 burn(vec2 uv, vec3 c, float kick) {
+  vec2 p = uv * vec2(RENDERSIZE.x / max(RENDERSIZE.y, 1.0), 1.0);
+  float t = TIME * 0.05;
+  float n = 0.6 * vnoise(p * 3.0 + vec2(t, -t)) + 0.3 * vnoise(p * 7.0 - vec2(t * 1.7, 0.0)) + 0.1 * vnoise(p * 17.0);
+  float d = n - (0.55 * fx_burn + 0.05 * fx_burn * sigB().r);
+  float on = smoothstep(0.0, 0.15, fx_burn);
+  float hole = 1.0 - smoothstep(-0.01, 0.0, d);
+  float rim = (1.0 - smoothstep(0.0, 0.05, d)) * (1.0 - hole);
+  float scorch = 1.0 - smoothstep(0.0, 0.15, d);
+  c = mix(c, c * vec3(0.55, 0.35, 0.2), scorch * 0.7 * on);
+  c = mix(c, vec3(1.0, 0.45, 0.1) * (1.2 + kick), rim * on);
+  return mix(c, vec3(1.0, 0.95, 0.85), hole * on);
+}
+
 vec3 grade(vec3 c, float kick) {
   if (fx_hue > 0.001) { c = clamp(hueRotate(c, fx_hue + 0.1 * kick * fx_hue), 0.0, 1.0); }
   if (fx_posterize > 0.001) {
@@ -263,6 +348,8 @@ void main() {
     vec2 q = warpUV(uv, kick);
     vec3 c = readAt(q);
     if (fx_lift > 0.001) { c = lift(q, c, kick); }
+    if (fx_bloom > 0.001) { c = bloom(q, c, kick); }
+    if (fx_edges > 0.001) { c = edges(q, c, kick); }
     c = grade(c, kick);
     // feedback: trails keep the brighter past, the tunnel pulls it inward and turns it
     if (fx_trails > 0.001) {
@@ -285,6 +372,20 @@ void main() {
       float keep = fx_drag * 0.96 * (1.0 - 0.85 * kick) * step(0.25, hash(cell + 3.7 + bt));
       c = mix(c, prev, keep);
     }
+    if (fx_slit > 0.001) {
+      // slit-scan: right of the slit the last frame streams away sideways, so the slit's column smears out;
+      // the slit jumps every bar, the lows speed the stream
+      float sx = 0.15 + 0.6 * hash(vec2(floor(BAR), 31.0));
+      vec3 prev = IMG_NORM_PIXEL(fb, uv - vec2(SLIT_SPEED * (0.6 + 0.8 * sigB().r), 0.0)).rgb;
+      c = mix(c, prev, smoothstep(sx, sx + 0.01, uv.x) * fx_slit);
+    }
+    if (fx_colourlag > 0.001) {
+      // colour lag: green and blue run behind red, so movement leaves colour trails; a kick snaps them back
+      vec3 prev = IMG_NORM_PIXEL(fb, uv).rgb;
+      float k = fx_colourlag * (1.0 - 0.5 * kick);
+      c.g = mix(c.g, prev.g, 0.8 * k);
+      c.b = mix(c.b, prev.b, 0.95 * k);
+    }
     if (fx_echo > 0.001) {
       // echo: the picture from one beat ago, offset a little, brightest early in the beat
       float bt = floor(BEAT);
@@ -304,6 +405,7 @@ void main() {
     c *= 1.0 - 0.6 * fx_scan * line;
     c *= 1.0 + 0.3 * fx_scan * (hash(vec2(floor(TIME * 30.0), 1.0)) - 0.5);
   }
+  if (fx_burn > 0.001) { c = burn(uv, c, kick); }
   if (fx_leak > 0.001) {
     vec3 l = clamp(leak(uv, kick, sigB().b) * fx_leak * 1.4, 0.0, 1.0);
     c = 1.0 - (1.0 - c) * (1.0 - l);
