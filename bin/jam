@@ -73,37 +73,45 @@ cmd_pad() {
   done
 
   mcp_start
-  # The pad must switch to a look: its row's action is swap/video/<output>/shader/…/<look>/<when>.
+  # The pad must switch to a look: its row's action is swap/video/<mix>/shader/…/<look>/<when>.
   local action look
   action=$(call get_controller_mapping "$(jq -cn --arg c "$CONTROLLER" '{controller:$c}')" \
     | jq -r --arg p "pad/$pad" '[.rows[] | select(.control==$p) | .action][0] // ""')
   [ -n "$action" ] || die "pad/$pad isn't mapped on $CONTROLLER"
   [[ "$action" == swap/video/*/shader/* ]] || die "pad/$pad drives '$action', not a look: only look pads take a shader"
   look=$(printf '%s' "$action" | awk -F/ '{print $(NF-1)}')
-  local output; output=$(printf '%s' "$action" | awk -F/ '{print $3}')
+  local target; target=$(printf '%s' "$action" | awk -F/ '{print $3}')   # the video mix (or, on older hubs, the output)
 
-  # Copy the shader into the playing scene's folder (an existing file of that name is kept as .bak).
-  local scene dir
-  scene=$(call get_state '{}' | jq -r '.scene.current')
-  dir="$HOME/Music/tussen/scenes/$scene/shaders"
+  # Newer hubs keep the look in a vibe (layers.vibe, vibes/<name>/) and name shaders by mix;
+  # older ones keep it in a scene (scene, scenes/<name>/) and name them by output.
+  local state_json folder key chain_key current
+  state_json=$(call get_state '{}')
+  if [ "$(printf '%s' "$state_json" | jq -r 'has("layers")')" = "true" ]; then
+    current=$(printf '%s' "$state_json" | jq -r '.layers.vibe.current'); folder="vibes"; key="mix"; chain_key="mix"
+  else
+    current=$(printf '%s' "$state_json" | jq -r '.scene.current'); folder="scenes"; key="output"; chain_key="output"
+  fi
+
+  # Copy the shader into the playing vibe's folder (an existing file of that name is kept as .bak).
+  local dir="$HOME/Music/tussen/$folder/$current/shaders"
   mkdir -p "$dir"
   local name; name=$(basename "$file")
   if [ -f "$dir/$name" ] && ! cmp -s "$file" "$dir/$name"; then cp "$dir/$name" "$dir/$name.bak"; fi
   cp "$file" "$dir/$name"
 
-  call set_shader_file "$(jq -cn --arg o "$output" --arg s "$look" --arg f "shaders/$name" '{output:$o,slot:$s,file:$f}')" >/dev/null
-  [ -z "$mode" ]   || call set_shader_param "$(jq -cn --arg o "$output" --arg s "$look" --argjson v "$mode"   '{output:$o,slot:$s,param:"mode",value:$v}')" >/dev/null
-  [ -z "$amount" ] || call set_shader_param "$(jq -cn --arg o "$output" --arg s "$look" --argjson v "$amount" '{output:$o,slot:$s,param:"amount",value:$v}')" >/dev/null
+  call set_shader_file "$(jq -cn --arg k "$key" --arg t "$target" --arg s "$look" --arg f "shaders/$name" '{($k):$t,slot:$s,file:$f}')" >/dev/null
+  [ -z "$mode" ]   || call set_shader_param "$(jq -cn --arg k "$key" --arg t "$target" --arg s "$look" --argjson v "$mode"   '{($k):$t,slot:$s,param:"mode",value:$v}')" >/dev/null
+  [ -z "$amount" ] || call set_shader_param "$(jq -cn --arg k "$key" --arg t "$target" --arg s "$look" --argjson v "$amount" '{($k):$t,slot:$s,param:"amount",value:$v}')" >/dev/null
 
   # Wait for it to compile, and say whether it runs.
   local state=""
   for _ in 1 2 3 4 5 6 7 8 9 10; do
-    state=$(call list_shaders '{}' | jq -r --arg o "$output" --arg s "$look" \
-      '.chains[] | select(.output==$o) | .shaders[] | select(.name==$s) | if .error then "error: " + .error elif .running then "running" else "" end')
+    state=$(call list_shaders '{}' | jq -r --arg c "$chain_key" --arg t "$target" --arg s "$look" \
+      '.chains[] | select(.[$c]==$t) | .shaders[] | select(.name==$s) | if .error then "error: " + .error elif .running then "running" else "" end')
     [ -z "$state" ] || break
     sleep 0.5
   done
-  echo "pad/$pad → $look on $output is now ${name%.fs} ($scene): ${state:-still compiling}"
+  echo "pad/$pad → $look on $target is now ${name%.fs} ($current): ${state:-still compiling}"
   [[ "$state" != error:* ]] || exit 1
 }
 

@@ -15,7 +15,7 @@ its plane. The rules and the ways to reach the hub are in
   last good version running, so a save is safe. Still, check after every
   save (below), and add new work as a new shader or bypassed, not by
   gutting the one on screen.
-- **Every plane edit is undoable** (`undo`) and saved with the scene.
+- **Every plane edit is undoable** (`undo`) and saved with the vibe (the look) or the routing (the sound).
 - **Ask before anything that pops up on someone's screen**: a fullscreen
   window output, a permission dialog (camera, screen recording, app audio
   taps). An NDI output is invisible until someone receives it, so it's the
@@ -28,7 +28,7 @@ From the repo's default workspace:
 ```sh
 B=target/release/simply-tussen          # or: cargo xtask hub ctl …
 $B ctl methods                           # every method, one line each
-$B ctl get_state                         # inputs, mixes, outputs, scene
+$B ctl get_state                         # inputs, mixes, outputs, layers
 $B ctl <method> '<json>' </dev/null      # always </dev/null: nothing may wait for input
 ```
 
@@ -42,8 +42,8 @@ $B ctl <method> '<json>' </dev/null      # always </dev/null: nothing may wait f
 
 ## Shaders
 
-The scene's folder is `~/Music/tussen/scenes/<scene>/` (`get_state` →
-`scene.current`); shaders live in its `shaders/`. **Saving the file
+The vibe's folder is `~/Music/tussen/vibes/<vibe>/` (`get_state` →
+`layers.vibe.current`); shaders live in its `shaders/`. **Saving the file
 reloads it.**
 
 Shaders live on **video outputs**: an output reads named inputs (each a

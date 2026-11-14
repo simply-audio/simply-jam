@@ -2,7 +2,7 @@
 
 Shaders I believe in: ISF GLSL files (`.fs`) that tussen runs on a video output's chain. These are the ones I perform with, gathered from my scenes.
 
-**To use one:** copy it into your scene's `shaders/` folder (`~/Music/tussen/scenes/<scene>/shaders/`), then ask your agent to add it to an output, or call `add_shader {output, file: "shaders/<name>.fs"}`. Most read the music on their own; `padfx` sits last on a chain and turns pad pressure into effects.
+**To use one:** copy it into your vibe's `shaders/` folder (`~/Music/tussen/vibes/<vibe>/shaders/`), then ask your agent to add it to an output, or call `add_shader {output, file: "shaders/<name>.fs"}`. Most read the music on their own; `padfx` sits last on a chain and turns pad pressure into effects.
 
 **Needs:** *depth* reads tussen's ML depth map (and falls back to brightness without it); *sound* reacts to the music; *two pictures* blends a second input (name it in the output's inputs).
 

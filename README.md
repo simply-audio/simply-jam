@@ -9,8 +9,8 @@ tussen is the hub that runs a jam: your music, cameras and controllers come in a
 | | |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | what an agent should know before it touches a live show |
-| [`skills/`](skills/) | skills for driving tussen: setting it up, shaders, controllers, outputs, scenes |
-| [`shaders/`](shaders/) | shaders I believe in, ready to drop into a scene |
+| [`skills/`](skills/) | skills for driving tussen: setting it up, shaders, controllers, outputs, vibes |
+| [`shaders/`](shaders/) | shaders I believe in, ready to drop into a vibe |
 | [`music/`](music/) | musical guidance: how a set moves, and what the pictures should do with it |
 
 ## Install
@@ -49,13 +49,13 @@ bin/jam pad 2/5 paint        # pad row 2 (from the bottom), column 5 now plays p
 bin/jam pad 1/3 print --mode 4 --amount 0.5
 ```
 
-It copies the shader into the playing scene and swaps it into that pad's look. It needs curl and jq; `JAM_CONTROLLER` picks another controller (default `launchpad-x`).
+It copies the shader into the playing vibe and swaps it into that pad's look. It needs curl and jq; `JAM_CONTROLLER` picks another controller (default `launchpad-x`).
 
 Other agents (Claude Code, Codex, …) can use the skills too: point them at `skills/` and connect them to `http://127.0.0.1:9097/mcp`.
 
 ## Community
 
-Come and jam with us on the [simply.audio Discord](https://discord.gg/bAEAFkDQFX): share shaders and scenes, ask questions, find people to play with. Everything else is at [simply.audio](https://simply.audio).
+Come and jam with us on the [simply.audio Discord](https://discord.gg/bAEAFkDQFX): share shaders and vibes, ask questions, find people to play with. Everything else is at [simply.audio](https://simply.audio).
 
 ## Licence
 

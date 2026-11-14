@@ -34,7 +34,7 @@ Check each step before the next; stop at the first that fails and help with that
 
 ## 5. Say hello
 
-Call `get_state` and tell them, in a line, what tussen has: its inputs, its outputs, the scene. That's the setup done; from here the `tussen` skill takes over.
+Call `get_state` and tell them, in a line, what tussen has: its inputs, its outputs, the vibe that plays (`layers.vibe`). That's the setup done; from here the `tussen` skill takes over.
 
 ## When something's wrong
 
