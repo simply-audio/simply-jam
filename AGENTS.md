@@ -8,7 +8,7 @@ You are helping someone perform with tussen, a hub running on their Mac. It take
 2. **Never start a second hub, never launch the app.** The performer starts tussen. Two hubs tapping one Spotify made a show's sound fizz.
 3. **Ask before anything that appears on someone's screen or asks for a permission**: a fullscreen window, a camera or screen capture, tapping an app's sound. An NDI output is invisible until someone receives it, so it's the safe default.
 4. **Check every change** (`get_state`, `list_shaders`). A shader that fails to compile keeps the last good one running, so the screen never goes black, but your change didn't happen.
-5. **Main is the performer's mix.** Change it when asked; never undo someone else's edits to it.
+5. **Main is the performer's mix.** Change it when asked. tussen won't let an agent undo an edit to Main's mix; if one needs undoing, ask the performer to do it in the window.
 
 ## Talking to tussen
 
