@@ -6,9 +6,9 @@ Where the sound lives, how to pick what you hear, and how to drive tussen over O
 
 - **Everything you hear is saved in the routing**, `~/Music/tussen/routing/default/routing.toml`, whatever scene plays: gains, mutes, mixes, each output's mix and filter, rewrites and remaps, plugins with their bindings and state.
 - **A vibe is the look**: `~/Music/tussen/vibes/<name>/vibe.toml` holds the looks, the tempo and what it offers controllers. **A vibe switch changes the look, the offers and the tempo, never the sound.** `tussen.toml`'s `[layers]` names which vibe and routing run (`vibe = "…"`, `routing = "…"`).
-- **The layer calls:** `list_layers {layer?}`; `layer_switch {layer: "vibe", name, at: "next_bar"}`; `layer_edit {layer: "vibe", name, edit}` (only `tempo`, `offers` and the looks); `layer_save|layer_lock|layer_revert {layer, name?}`; `layer_new|layer_rename|layer_delete|layer_save_as`; `vibe_try {take, vibe?}`; `reload {config?, vibe?, routing?}`. Sound uses its own calls: `set_mix_gain`, `add_to_mix`, `update_destination`, `remap_upsert`, `update_input`, `plugin_load`. Switching routings isn't built yet; a routing file edited by hand shows in `changed_on_disk` and `reload {routing}` takes it in.
+- **The layer calls:** `list_layers {layer?}`; `layer_switch {layer: "vibe", name, at: "next_bar"}`; `layer_edit {layer: "vibe", name, edit}` (only `tempo`, `offers` and the looks); `layer_save|layer_lock|layer_revert {layer, name?}`; `layer_new|layer_rename|layer_delete|layer_save_as`; `vibe_try {take, vibe?}`; `reload {config?, vibe?, routing?}`. Sound uses its own calls: `set_mix_gain`, `add_to_mix`, `update_destination`, `remap_upsert`, `update_input`, `plugin_load`. A routing file edited by hand shows in `changed_on_disk` and `reload {routing}` takes it in.
 - `get_state` shows `layers.vibe` (current, pending, dirty, locked) and `layers.routing` (its `missing` lists outputs and channels this machine lacks).
-- A breakdown-style move (the mic up, a send narrowed) is a gain or a pad, not a vibe: `set_mix_gain`, or map a pad to `mix/main/channel/<input>/gain`.
+- A breakdown-style move (the mic up, a send narrowed) is a gain, a pad, or a **routing switch**, never a vibe switch (see below).
 - **`plugin_binds {slot, binds}`** sets a plugin slot's OSC bindings (`[{param, from, range?, curve?}]`), the list replaced, one undoable edit.
 - A destination's `timing`, an announced device's follow switch, an OSC input's `filter`/`prefix`/rewrites and an output's `mute` are the machine's, in `tussen.toml`.
 
@@ -48,4 +48,12 @@ Main can play on several devices at once (laptop speakers, headphones, the PA). 
 - `layer_switch {layer: "mappings", name}` switches **at once** (never on the bar): live values stay, a Pickup control waits to meet its new target, and it isn't an undo step. Actions `mappings/<set>`, `mappings/next`, `mappings/prev`, from a pad or OSC.
 - `list_layers {layer: "mappings"}`; `layer_new {layer: "mappings", name, from?}`, `layer_save_as`, `layer_rename`, `layer_delete` (never the running set). Rows are edited with `set_controller_mapping`, which writes the running set's file.
 - `get_state`'s `layers.mappings.current` names the running set; `folders.mappings.problem` says when an old `~/.config/tussen/controllers/` folder still needs moving to `mappings/default/` (until then controllers play their model's defaults and edits aren't saved).
+
+## Routings: switch the sound on the bar
+
+- **Routings are a library**: `~/Music/tussen/routing/<name>/routing.toml`, plugin states in `plugins/` beside each. One runs (`[layers] routing`, absent: `default`). `list_layers {layer: "routing"}` lists them.
+- **Switch by hand, on the grid**: `layer_switch {layer: "routing", name, at: "next_bar"}` (or `"next_beat"`, `"now"`). It answers `preparing: true`; `layers.routing.pending` shows it until it lands. Clickless: gains cross a seam, plugin chains swap on the line, and a plugin both routings share keeps playing. `layer_cancel {layer: "routing"}` calls it off. **Never an undo entry**: switch back to undo it. Nothing switches a routing by itself (no vibe, no jam).
+- **A breakdown that changes the sound** is a routing: `layer_new {layer: "routing", name: "breakdown"}` copies the running one as it is live (`from: "empty"` or another routing's name otherwise); switch to it, edit with the usual sound calls (they write the running routing), switch back. Also `layer_save_as`, `layer_rename`, `layer_delete` (not the running one), `layer_load`, `layer_lock`. A routing is edited only while it runs.
+- **Actions**: `routing/next`, `routing/prev`, `routing/<name>` switch on the next bar. **One pad, vibe and routing together**: two mapping rows on the control, `vibe/<name>` and `routing/<name>`; both land on the same bar.
+- Undo follows the routing an edit was made in. `vibe_try {take, vibe?, routing?}` tries a take through any routing.
 
