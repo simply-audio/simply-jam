@@ -40,6 +40,7 @@ Shaders I believe in: ISF GLSL files (`.fs`) that tussen runs on a video output'
 | [`print`](print.fs) | audiodev print: the picture as cells and dots (mosaic, halftone, dot swap, glyphs, matrix rain, dither, LED wall, stained glass, pointillism). | depth, sound | texture, depth, sound, beat, modes, pressure | 12 | 3 |
 | [`screen`](screen.fs) | audiodev screen: screens and film stock — CRT, film print, VHS, night vision, hologram figure, hat static, hat scanline shove, hat grain. One mode per look, `where` puts it on the whole picture, the figure or the room. | depth, sound | texture, depth, sound, beat, modes, pressure | 12 | 5 |
 | [`glitch`](glitch.fs) | audiodev glitch: RGB split, block datamosh, slice glitch, prism, pixel stretch, kick RGB burst, hat vibrate, edge crackle, kick katana slice, hat micro-glitch. Built to hit on the kick; `where` puts it on the whole picture, the figure (it moves over the room plate) or the room. | depth, sound | glitch, feedback, depth, sound, beat, modes, pressure | 12 | 6 |
+| [`paint`](paint.fs) | paint: the camera as a wet oil painting. Strokes follow the picture's edges, finer on the figure and looser in the room, with canvas and relief. Kicks swell the brush and the colour, the mids make the paint run, the hats make the wet strokes shine. | depth, sound | texture, depth, sound, beat, pressure | 16 | 4 |
 
 ## Whole looks
 
@@ -47,6 +48,8 @@ Shaders I believe in: ISF GLSL files (`.fs`) that tussen runs on a video output'
 |---|---|---|---|---|---|
 | [`hackathon`](hackathon.fs) | The hackathon look (tussen-composite v01–v21): the gel bench (now in magenta, the past in teal, summed as light), cel bands on the figure riding the hats, and on every kick the figure's outline frozen and dissolving into embers that radiate outward. Highs fringe the frame. Also FX 70 (dual gel), 47 (edge dust), 176/289 (hat glitter/shards), 284 (falling dust). | depth, sound | whole-look, figure, history, depth, sound, beat, pressure | 20 | 4 |
 | [`hearts`](hearts.fs) | hearts: floating hearts over the picture that pump with the bass, glow with the highs and flash on the beat; fx_* are performance effects (0 = off, held pad = on) | sound | overlay, sound, beat, pressure | 20 | 1 |
+| [`beams`](beams.fs) | beams: a dark stage cut by gel-coloured beams falling through haze. The figure stands lit in them and throws its shadow down the shafts; the room sinks into the dark. The beams pan to new places on each beat and trade gels on each bar; kicks flare and widen them, the mids thicken the haze, the hats glint dust in the light. | depth, sound | whole-look, figure, depth, sound, beat, pressure | 18 | 3 |
+| [`shadows`](shadows.fs) | shadows: three coloured lamps throw three shadows of the figure on the wall behind; where one lamp is blocked the wall takes the other two's colour, and the figure stands lit white in front. Kicks throw the shadows apart, the mids sway them, the outer two trail the figure's moves, and the lamps trade colours on each bar. | depth, sound | whole-look, figure, depth, sound, beat, pressure | 16 | 4 |
 
 ## Performance pads
 
