@@ -51,8 +51,8 @@ video channel) through its chain and goes to NDI, a window or the cue.
 
 ```sh
 $B ctl add_video_output '{"name":"stage","inputs":["cam",{"name":"plate","channel":"td"}],"ndi":"tussen stage"}'
-$B ctl add_shader '{"output":"stage","file":"shaders/x.fs","index":0}'   # index 0: first in the chain
-$B ctl list_shaders '{"output":"stage"}'     # running? error + line? what each image reads, what is missing
+$B ctl add_shader '{"mix":"stage","file":"shaders/x.fs","index":0}'   # index 0: first in the chain
+$B ctl list_shaders '{"mix":"stage"}'     # running? error + line? what each image reads, what is missing
 ```
 
 A shader's `image` inputs bind by `bind` (`set_shader_bind`), then by
@@ -121,7 +121,7 @@ The pattern that works: give the shader one `float` parameter (0..1, default
 0) per effect, `mix` it in, then drive each parameter from a pad:
 
 ```sh
-$B ctl set_shader_param_source '{"output":"stage","slot":"hearts","param":"fx_glitch",
+$B ctl set_shader_param_source '{"mix":"stage","slot":"hearts","param":"fx_glitch",
   "source":{"osc":"/tussen/local/midi/launchpad-x-lpx-midi-out/1/note/43/pressure"}}'
 ```
 
@@ -161,5 +161,5 @@ $B ctl set_shader_param_source '{"output":"stage","slot":"hearts","param":"fx_gl
 - `gl_FragCoord` runs y-down in tussen (unlike `isf_FragNormCoord`, which runs y-up): for a pixel grid mapped back to uv, use `isf_FragNormCoord * RENDERSIZE`, or the picture flips.
 - Pass buffers are 16-bit floats: never store absolute TIME in one (it loses precision after a minute); store `fract(TIME)` and ages.
 - With a `depth` input a shader has 5 buffers left (8 extra textures minus images, audio, depth).
-- Live pressure pads: map BOTH `pad/<r>/<c>` (velocity on the hit) and `pad/<r>/<c>/pressure` to the same `video/<output>/<shader>/<param>` with response `jump`, and set the param's source to `controller`. The hit sets the amount at once, and pressure moves it while held. A scene param on `{osc = …/pressure}` lights no pad and ignores velocity.
+- Live pressure pads: map BOTH `pad/<r>/<c>` (velocity on the hit) and `pad/<r>/<c>/pressure` to the same `video/<mix>/<look>/<param>` with response `jump`, and set the param's source to `controller`. The hit sets the amount at once, and pressure moves it while held. A scene param on `{osc = …/pressure}` lights no pad and ignores velocity.
 - Swaps: `/now` is live, `/beat` and `/bar` wait for the line.

@@ -65,13 +65,13 @@ Names you will get wrong otherwise:
 | goal | calls |
 |---|---|
 | an output from the camera | `add_mix {name:"stage", kind:"video", inputs:["cam"]}` then `add_video_output {name:"stage", mix:"stage", ndi?}` (shaders live on the mix, see [sound and control](references/sound-and-control.md)) |
-| two pictures combined | `set_video_inputs {output, inputs:["cam", {"name":"plate","channel":"td"}]}`; a shader's `image` inputs named `cam` and `plate` read them by name (`set_shader_bind` to say otherwise) |
-| a shader on the output | write `shaders/x.fs`, then `add_shader {mix, file, index?}`, then `list_shaders` (its `missing` says what reads black) |
-| change a shader | read it (`list_shaders` gives each shader's `path`), then `check_shader {output, slot, source}` with the whole new text: write the file only if `ok` (the hub reloads it within ¼ s); if not, fix `error.line` (a line in the source you sent) and check again. A broken save never stops the picture, but checking first means the operator never sees an error |
-| a slider follows a pad's pressure | `set_shader_param_source {output, slot, param, source:{"osc":"/tussen/local/midi/launchpad-x-lpx-midi-out/1/note/43/pressure"}}` (the exact address: device and channel from `filter_preview`) |
+| two pictures combined | `set_mix_inputs {mix, inputs:["cam", {"name":"plate","channel":"td"}]}`; a shader's `image` inputs named `cam` and `plate` read them by name (`set_shader_bind` to say otherwise) |
+| a shader on the picture | write `shaders/x.fs`, then `add_shader {mix, file, index?}`, then `list_shaders` (its `missing` says what reads black) |
+| change a shader | read it (`list_shaders` gives each shader's `path`), then `check_shader {mix, slot, source}` with the whole new text: write the file only if `ok` (the hub reloads it within ¼ s); if not, fix `error.line` (a line in the source you sent) and check again. A broken save never stops the picture, but checking first means the operator never sees an error |
+| a slider follows a pad's pressure | `set_shader_param_source {mix, slot, param, source:{"osc":"/tussen/local/midi/launchpad-x-lpx-midi-out/1/note/43/pressure"}}` (the exact address: device and channel from `filter_preview`) |
 | a slider follows the music | source `"beat"`, `"bar"`, `{"level":"main"}` (+ `set_shader_param_level` for its span and smoothing) |
-| switch shaders from a pad | map the pad to `swap/video/<output>/shader/<a>/<b>…/<step>/<when>` (`set_controller_mapping`) |
-| cut or fade an input from a pad | `swap/video/<output>/input/<slot>/<channels…>/<step>/<when>`; `swap/video/<output>/fade/<slot>/<beats>/<channels…>/<step>/<when>` |
+| switch shaders from a pad | map the pad to `swap/video/<mix>/shader/<a>/<b>…/<step>/<when>` (`set_controller_mapping`) |
+| cut or fade an input from a pad | `swap/video/<mix>/input/<slot>/<channels…>/<step>/<when>`; `swap/video/<mix>/fade/<slot>/<beats>/<channels…>/<step>/<when>` |
 | picture out | `set_video_output {output, ndi:"name"}`; `window:true, display:N` is fullscreen (ask first) |
 | check a picture privately | the Video tab's pills show any output in the app's window, sending nothing |
 | a source into a mix | `add_to_mix {mix:"main", input}` / `remove_from_mix` |
