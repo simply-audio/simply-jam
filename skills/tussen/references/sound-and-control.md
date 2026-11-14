@@ -30,4 +30,13 @@ Main can play on several devices at once (laptop speakers, headphones, the PA). 
   - Values (gains, pans, `plugin/<slot>/<param>`, `video/<output>/<shader>/<param>`, `knob/<name>`, `osc/<output>/<address>`): follow 0..1.
   - `scene/…` and `swap/…`: fire on the rising edge. A scene action goes through what the running scene offers.
 - **State back:** a destination subscribed to `/tussen/action/` gets `/tussen/action/<action>/active` and `/armed` (1 or 0) on change, and once when added or on a device's hello. TouchOSC: bind a pad to `/tussen/action/<a>` and its LED to `/tussen/action/<a>/active`.
-- **Takes:** actions sent over OSC are recorded and fire again on replay. Controller moves are not recorded yet.
+- **Takes:** actions sent over OSC, and everything a claimed controller does, are recorded as `/tussen/action/<action>` messages and fire again on replay, on time. A latched value is recorded as held. A take started mid-run doesn't fire earlier moves.
+- **A controller's live mute:** while a pad holds a mute over the saved one, `get_state` shows `inputs[].channels[].live_mute` (and `destinations[].output.live_mute` for outputs). `update_input {mute}` / `update_destination {mute}` takes it back.
+
+## Video goes through a mix
+
+- A picture goes **input → video mix → output**. Make a mix (`add_mix {name, kind: "video", inputs: ["cam"]}`), then an output that shows it (`add_video_output {name, mix, ndi?, window?, display?}`). `add_to_mix {mix, input}` adds a camera; `remove_mix {kind: "video", name}` / `rename_mix {kind: "video", name, to}` take one out or rename it.
+- The shaders are the scene's **looks**, on a mix: shader calls take `mix` (`add_shader {mix, file}`, `set_shader_param {mix, slot, param, value}`, `list_shaders`, `check_shader {mix, slot, source}`). `set_mix_inputs {mix, inputs}` sets a mix's cameras; `set_video_output {output, mix?, ndi?, window?, display?}` picks what an output shows.
+- Where each lives: the mix's cameras in the routing, the looks in the scene, an output's NDI name and display in `tussen.toml`. A scene switch changes the looks, never the cameras.
+- Actions keep their form: `video/<mix>/<look>/<param>`, `swap/video/<mix>/shader|input|fade/…`.
+
