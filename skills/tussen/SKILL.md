@@ -76,6 +76,7 @@ Names you will get wrong otherwise:
 | check a picture privately | the Video tab's pills show any output in the app's window, sending nothing |
 | a source into a mix | `add_to_mix {mix:"main", input}` / `remove_from_mix` |
 | change vibes | `layer_switch {layer:"vibe", name, at:"next_bar"}`: changes the looks, offers and tempo, never the sound |
+| studio rig to the PA | `layer_load {layer:"outputs", name:"pa"}` (what would change, in words), then `layer_switch {layer:"outputs", name:"pa"}`: at once, only what differs moves, never an undo step (inputs the same; see [sound and control](references/sound-and-control.md)) |
 | choose which speakers you hear | `update_destination {name, mute}` on the others (see [sound and control](references/sound-and-control.md)) |
 | drive tussen over OSC | `/tussen/action/<action>`, any action `list_actions` gives ([sound and control](references/sound-and-control.md)) |
 | a simply-jam shader on a look pad | `bin/jam pad <row>/<col> <shader> [--mode N]` from the simply-jam folder (row 1 = bottom): copies it into the scene and `set_shader_file`s the pad's look |
@@ -83,7 +84,7 @@ Names you will get wrong otherwise:
 
 ## Deeper
 
-- [references/sound-and-control.md](references/sound-and-control.md): where the sound lives (routing, not vibes), muting outputs, effects on one input, every action over OSC and its state.
+- [references/sound-and-control.md](references/sound-and-control.md): where the sound lives (routing, not vibes), inputs and outputs files and switching them, muting outputs, effects on one input, every action over OSC and its state.
 - [references/performing.md](references/performing.md): shaders in
   depth (coordinates, the GLSL subset that compiles, sound, the beat,
   multi-pass and depth buffers), controllers and pressure, video outputs.
