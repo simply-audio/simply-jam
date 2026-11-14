@@ -41,3 +41,10 @@ Main can play on several devices at once (laptop speakers, headphones, the PA). 
 - Where each lives: the mix's cameras in the routing, the looks in the vibe, an output's NDI name and display in `tussen.toml`. A vibe switch changes the looks, never the cameras.
 - Actions keep their form: `video/<mix>/<look>/<param>`, `swap/video/<mix>/shader|input|fade/…`.
 
+## Mapping sets
+
+- Controller mappings come in **sets**: `~/.config/tussen/mappings/<set>/<controller>.toml`. `tussen.toml`'s `[layers] mappings = "<set>"` names the one running (`default` when absent).
+- `layer_switch {layer: "mappings", name}` switches **at once** (never on the bar): live values stay, a Pickup control waits to meet its new target, and it isn't an undo step. Actions `mappings/<set>`, `mappings/next`, `mappings/prev`, from a pad or OSC.
+- `list_layers {layer: "mappings"}`; `layer_new {layer: "mappings", name, from?}`, `layer_save_as`, `layer_rename`, `layer_delete` (never the running set). Rows are edited with `set_controller_mapping`, which writes the running set's file.
+- `get_state`'s `layers.mappings.current` names the running set; `folders.mappings.problem` says when an old `~/.config/tussen/controllers/` folder still needs moving to `mappings/default/` (until then controllers play their model's defaults and edits aren't saved).
+
