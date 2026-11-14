@@ -11,7 +11,7 @@ them up in time, mixes the audio (`main`, `replays`), runs shader chains on
 video channels, and sends everything on (speakers, NDI, a fullscreen window,
 OSC and MIDI destinations, other hubs). Everything it does is a **plane
 call**: the window, MCP and `ctl` all call the same methods, every edit is
-undoable, and edits are saved with the current scene.
+undoable; the sound is saved in the routing and the look in the scene.
 
 This skill is the operator's knowledge. If tussen isn't installed, running
 or connected, use the `tussen-setup` skill first.
@@ -75,12 +75,15 @@ Names you will get wrong otherwise:
 | picture out | `set_video_output {output, ndi:"name"}`; `window:true, display:N` is fullscreen (ask first) |
 | check a picture privately | the Video tab's pills show any output in the app's window, sending nothing |
 | a source into a mix | `add_to_mix {mix:"main", input}` / `remove_from_mix` |
-| change scenes | `scene_switch {name, at:"next_bar"}` |
+| change scenes | `scene_switch {name, at:"next_bar"}`: changes the look, offers and tempo, never the sound |
+| choose which speakers you hear | `update_destination {name, mute}` on the others (see [sound and control](references/sound-and-control.md)) |
+| drive tussen over OSC | `/tussen/action/<action>`, any action `list_actions` gives ([sound and control](references/sound-and-control.md)) |
 | a simply-jam shader on a look pad | `bin/jam pad <row>/<col> <shader> [--mode N]` from the simply-jam folder (row 1 = bottom): copies it into the scene and `set_shader_file`s the pad's look |
 | undo | `history` first, then `undo {expect: <the position history gave>}` / `redo {expect}`; an agent can't undo, redo or `goto_history` past an edit to Main's mix (its gains, mutes, which channels it holds, its limiter, a plugin on it): ask the performer to undo it in the window |
 
 ## Deeper
 
+- [references/sound-and-control.md](references/sound-and-control.md): where the sound lives (routing, not scenes), muting outputs, effects on one input, every action over OSC and its state.
 - [references/performing.md](references/performing.md): shaders in
   depth (coordinates, the GLSL subset that compiles, sound, the beat,
   multi-pass and depth buffers), controllers and pressure, video outputs.
