@@ -1,16 +1,14 @@
 /*{
-  "DESCRIPTION": "Pad FX: 24 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Sits last on every chain, never swapped, so the pads work on whichever look is live.",
+  "DESCRIPTION": "Pad FX: 24 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, heat haze rising off the floor on the lows, mirror, tile, ripple, twirl, pixel, slices, glitch), reads (RGB split, blur, figure lift: the bright parts pushed forward over a darkened room, swelling on the kick), memory (trails, tunnel, datamosh drag: blocks of the last frame dragged along, a kick lets the live picture back in; echo: a ghost of the picture one beat ago), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak flaring on kicks and flickering with the highs, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live.",
   "CREDIT": "audiodev set; maths from the simply-creative FX library (12, 13, 23, 26, 27, 28, 41, 42, 50, 52, 71, 95, 131 …)",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["performance-pads", "feedback", "history", "sound", "beat", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
     { "NAME": "fx_zoom", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
-    { "NAME": "fx_shake", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
-    { "NAME": "fx_spin", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_haze", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_mirror", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
-    { "NAME": "fx_kaleido", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_tile", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_ripple", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_twirl", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
@@ -19,21 +17,24 @@
     { "NAME": "fx_glitch", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_rgb", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_blur", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_lift", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_trails", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_tunnel", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_drag", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_echo", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_invert", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_mono", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_hue", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_posterize", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_thermal", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
-    { "NAME": "fx_strobe", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_leak", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_blackout", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
-    { "NAME": "fx_flash", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_scan", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "gain", "TYPE": "float", "MIN": 0.25, "MAX": 8.0, "DEFAULT": 1.0 }
   ],
   "PASSES": [
     { "TARGET": "sig", "WIDTH": "2", "HEIGHT": "1", "FLOAT": true, "PERSISTENT": true },
+    { "TARGET": "echo", "WIDTH": "$WIDTH / 2", "HEIGHT": "$HEIGHT / 2", "FLOAT": true, "PERSISTENT": true },
     { "TARGET": "fb", "PERSISTENT": true },
     {}
   ]
@@ -41,9 +42,13 @@
 
 // ── grab these first ────────────────────────────────────────────────
 const float ZOOM_MAX    = 0.45;  // fraction of the frame cut away at full press
-const float SHAKE_PX    = 0.035; // uv, at full press, kicked harder on a kick
-const float SPIN_TURNS  = 0.5;   // half a turn at full press
-const float KALEIDO_N   = 6.0;   // segments
+const float HAZE_AMP    = 0.008; // uv the haze bends the picture at full press, at the floor
+const float LIFT_GROW   = 0.10;  // how much bigger the lifted figure gets at full press
+const vec2  LIFT_SHADOW = vec2(0.012, -0.018); // the lifted figure's shadow falls down-right (y up)
+const float DRAG_PX     = 0.010; // uv a datamosh block drags per frame at full press
+const float ECHO_DRIFT  = 0.025; // uv the beat's ghost sits off the live picture at full press
+const vec3  LEAK_HOT    = vec3(1.0, 0.32, 0.08); // the light leak's colour at its edge …
+const vec3  LEAK_CORE   = vec3(1.0, 0.82, 0.40); // … and in its core
 const float RIPPLE_AMP  = 0.03;
 const float TWIRL_TURNS = 1.2;
 const float PIXEL_MAX   = 64.0;  // cells across at full press (fewer = bigger)
@@ -120,12 +125,15 @@ vec3 ironbow(float t) {
 vec2 warpUV(vec2 uv, float kick) {
   float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
   vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
-  if (fx_shake > 0.001) {
-    float t = floor(TIME * 24.0);
-    p += (vec2(hash(vec2(t, 1.0)), hash(vec2(t, 2.0))) - 0.5) * 2.0 * SHAKE_PX * fx_shake * (0.4 + kick);
-  }
   if (fx_zoom > 0.001) { p *= 1.0 - ZOOM_MAX * fx_zoom * (0.8 + 0.2 * kick); }
-  if (fx_spin > 0.001) { p = rot(p, 6.2831853 * SPIN_TURNS * fx_spin * fx_spin); }
+  if (fx_haze > 0.001) {
+    // heat haze: wobbling refraction that rises (y up) and is strongest at the floor; the lows thicken it
+    float lows = sigB().r;
+    float w = sin(uv.y * 38.0 - TIME * 5.0 + 2.5 * sin(uv.x * 11.0 + TIME * 0.7))
+            + 0.5 * sin(uv.y * 71.0 - TIME * 8.0 + uv.x * 23.0);
+    float floorHeat = mix(1.0, 0.35, uv.y);
+    p += vec2(w, 0.4 * sin(uv.x * 29.0 - TIME * 3.0 + w)) * HAZE_AMP * fx_haze * floorHeat * (0.6 + 0.6 * lows + 0.5 * kick);
+  }
   if (fx_twirl > 0.001) {
     float r = length(p);
     p = rot(p, 6.2831853 * TWIRL_TURNS * fx_twirl * smoothstep(0.7, 0.0, r));
@@ -133,15 +141,6 @@ vec2 warpUV(vec2 uv, float kick) {
   if (fx_ripple > 0.001) {
     float r = length(p);
     p += normalize(p + 1e-5) * RIPPLE_AMP * fx_ripple * sin(40.0 * r - TIME * 10.0) * (0.5 + kick);
-  }
-  if (fx_kaleido > 0.001) {
-    float r = length(p);
-    float a = atan(p.y, p.x) + TIME * 0.2;
-    float seg = 6.2831853 / KALEIDO_N;
-    float m = mod(a, seg);
-    m = min(m, seg - m);
-    vec2 k = vec2(cos(m), sin(m)) * r;
-    p = mix(p, k, smoothstep(0.0, 0.25, fx_kaleido));
   }
   vec2 q = p / vec2(aspect, 1.0) + 0.5;
   if (fx_mirror > 0.001) { q.x = mix(q.x, 0.5 - abs(q.x - 0.5), step(0.15, fx_mirror)); }
@@ -182,6 +181,33 @@ vec3 readAt(vec2 q) {
   return c;
 }
 
+// Figure lift, depth-free: the bright parts (taken as near) grow toward the viewer and cast a
+// shadow, the rest of the room dims. The kick swells the lift.
+float liftKey(vec2 q) { return smoothstep(0.35, 0.65, lumaOf(IMG_NORM_PIXEL(inputImage, q).rgb)); }
+vec3 lift(vec2 q, vec3 c, float kick) {
+  float s = 1.0 - LIFT_GROW * fx_lift * (0.7 + 0.3 * kick);
+  vec2 ql = (q - 0.5) * s + 0.5;
+  vec3 cl = readAt(ql);
+  float key = smoothstep(0.35, 0.65, lumaOf(cl));
+  float shadow = liftKey((q - LIFT_SHADOW * fx_lift - 0.5) * s + 0.5);
+  vec3 room = c * (1.0 - 0.6 * fx_lift * shadow) * (1.0 - 0.35 * fx_lift);
+  return mix(room, cl * (1.0 + 0.2 * fx_lift * kick), key * smoothstep(0.0, 0.2, fx_lift));
+}
+
+// Film light leak: two warm soft sources wandering along the left and top edges,
+// flaring on the kick and flickering with the highs; screened over the picture.
+vec3 leak(vec2 uv, float kick, float hi) {
+  float t = TIME * 0.07;
+  vec2 a = vec2(-0.05 + 0.12 * sin(t * 1.3), 0.3 + 0.25 * (1.0 + sin(t)));
+  vec2 b = vec2(0.2 + 0.3 * (1.0 + sin(t * 0.7 + 2.0)), 1.05);
+  vec2 da = (uv - a) * vec2(2.2, 0.9);
+  vec2 db = (uv - b) * vec2(0.8, 2.6);
+  float la = exp(-3.0 * dot(da, da));
+  float lb = exp(-3.0 * dot(db, db));
+  vec3 col = mix(LEAK_HOT, LEAK_CORE, la) * la + LEAK_HOT * lb * 0.8;
+  return col * (0.55 + 0.45 * kick + 0.25 * hi * (0.5 + 0.5 * sin(TIME * 40.0)));
+}
+
 vec3 grade(vec3 c, float kick) {
   if (fx_hue > 0.001) { c = clamp(hueRotate(c, fx_hue + 0.1 * kick * fx_hue), 0.0, 1.0); }
   if (fx_posterize > 0.001) {
@@ -203,8 +229,18 @@ void main() {
   float kick = kickNow();
 
   if (PASSINDEX == 1.0) {
+    // echo: hold the incoming picture from the start of the beat; alpha keeps the phase to spot the wrap
+    vec4 held = IMG_NORM_PIXEL(echo, uv);
+    float take = max(step(PHASE + 0.5, held.a), 1.0 - step(1.0, FRAMEINDEX));
+    gl_FragColor = vec4(mix(held.rgb, IMG_NORM_PIXEL(inputImage, uv).rgb, take), PHASE);
+    return;
+  }
+
+  if (PASSINDEX == 2.0) {
     vec2 q = warpUV(uv, kick);
-    vec3 c = grade(readAt(q), kick);
+    vec3 c = readAt(q);
+    if (fx_lift > 0.001) { c = lift(q, c, kick); }
+    c = grade(c, kick);
     // feedback: trails keep the brighter past, the tunnel pulls it inward and turns it
     if (fx_trails > 0.001) {
       vec3 prev = IMG_NORM_PIXEL(fb, uv).rgb;
@@ -216,6 +252,25 @@ void main() {
       float keep = mix(0.0, 0.92, fx_tunnel) * (1.0 - 0.6 * smoothstep(0.15, 0.6, lumaOf(c)));
       c = mix(c, prev, keep);
     }
+    if (fx_drag > 0.001) {
+      // datamosh drag: each block drags the last frame its own way (new ways every beat); a kick lets the live picture in
+      float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
+      vec2 cell = floor(uv * vec2(24.0, 24.0 / aspect));
+      float bt = floor(BEAT);
+      vec2 dir = vec2(hash(cell + bt), hash(cell + bt + 17.3)) - 0.5;
+      vec3 prev = IMG_NORM_PIXEL(fb, uv - dir * 2.0 * DRAG_PX * fx_drag).rgb;
+      float keep = fx_drag * 0.96 * (1.0 - 0.85 * kick) * step(0.25, hash(cell + 3.7 + bt));
+      c = mix(c, prev, keep);
+    }
+    if (fx_echo > 0.001) {
+      // echo: the picture from one beat ago, offset a little, brightest early in the beat
+      float bt = floor(BEAT);
+      vec2 off = (vec2(hash(vec2(bt, 4.0)), hash(vec2(bt, 9.0))) - 0.5) * 2.0 * ECHO_DRIFT * fx_echo;
+      vec3 g = IMG_NORM_PIXEL(echo, uv + off).rgb;
+      float a = fx_echo * mix(1.0, 0.35, PHASE);
+      c = mix(c, max(c, g), a);
+      c = mix(c, g, 0.3 * a);
+    }
     gl_FragColor = vec4(c, 1.0);
     return;
   }
@@ -226,12 +281,11 @@ void main() {
     c *= 1.0 - 0.6 * fx_scan * line;
     c *= 1.0 + 0.3 * fx_scan * (hash(vec2(floor(TIME * 30.0), 1.0)) - 0.5);
   }
-  if (fx_strobe > 0.001) {
-    // 16ths of the Link beat: on for the first third of each
-    float on = step(fract(PHASE * 4.0), 0.33);
-    c = mix(c, vec3(1.0), on * fx_strobe);
+  if (fx_leak > 0.001) {
+    vec3 l = clamp(leak(uv, kick, sigB().b) * fx_leak * 1.4, 0.0, 1.0);
+    c = 1.0 - (1.0 - c) * (1.0 - l);
+    c += vec3(0.04, 0.015, 0.0) * fx_leak;
   }
-  if (fx_flash > 0.001) { c = mix(c, vec3(1.0), fx_flash * (0.4 + 0.6 * max(exp(-5.0 * PHASE), kick))); }
   if (fx_blackout > 0.001) { c *= 1.0 - fx_blackout; }
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
 }

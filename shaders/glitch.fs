@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev glitch: RGB split, block datamosh, slice glitch, prism, pixel stretch, kick RGB burst, hat vibrate, edge crackle, kick katana slice, hat micro-glitch. Built to hit on the kick; `where` puts it on the whole picture, the figure (it moves over the room plate) or the room.",
   "CREDIT": "simply-creative FX library (FX 12 23 113 138 143 241 264 269 296 299), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["glitch", "feedback", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "Feedback tunnels: the last frame folded back into this one. mode 0 tunnel (FX 50: the room recedes into rings), 1 zoom-rotate spiral (FX 131: classic video feedback, colour rolling per echo), 2 kaleido tunnel (FX 139: an 8-wedge kaleidoscope diving inward). figureOnTop keeps the figure live and sharp over its own tunnel (modes 0, 1; needs depth).",
   "CREDIT": "Chris Poucet, simply-creative FX 50, 131, 139, ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["time", "feedback", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

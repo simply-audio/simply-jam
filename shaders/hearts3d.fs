@@ -1,6 +1,6 @@
 /*{
   "DESCRIPTION": "hearts3d: three passes around a depth buffer. 1: the picture's depth (the ML depth map when tussen has one, else blurred brightness; depthFallback blends to brightness). 2: ray-marched 3D hearts, depth-tested against it, colour + z into a float buffer. 3: depth of field from that z.",
-  "CATEGORIES": ["tussen examples"],
+  "CATEGORIES": ["overlay", "depth", "sound", "beat"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

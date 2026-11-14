@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev print: the picture as cells and dots (mosaic, halftone, dot swap, glyphs, matrix rain, dither, LED wall, stained glass, pointillism).",
   "CREDIT": "simply-creative FX library (FX 11 20 21 67 110 111 124 125 126 210 240 280), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["texture", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

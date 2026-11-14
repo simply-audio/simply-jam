@@ -1,6 +1,6 @@
 /*{
   "DESCRIPTION": "hearts: floating hearts over the picture that pump with the bass, glow with the highs and flash on the beat; fx_* are performance effects (0 = off, held pad = on)",
-  "CATEGORIES": ["tussen examples"],
+  "CATEGORIES": ["overlay", "sound", "beat", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },

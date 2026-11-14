@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev hold: freezes, stutters and sample-and-hold. A persistent held frame grabbed on a trigger (kick, beat grid, bar, pressure edge) shown in place of the live picture, per region (where), per cell or behind a sweep line.",
   "CREDIT": "simply-creative FX library (FX 10, 64, 65, 128, 161, 171, 186, 188, 199, 207, 216, 220, 244, 252, 268), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["time", "history", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev figure: the figure as a graphic, cut by depth. Outline, neon tubes, aura, key glow, lightning, hat strobe rim, beat halo, shadow puppet, paper cutout, stencil, x-ray, double exposure, ghost, ink on paper, shadow ink, light composite, ambient wrap.",
   "CREDIT": "simply-creative FX library (FX 16 53 72 79 91 107 108 109 119 120 149 191 192 198 208 261 271), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["figure", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

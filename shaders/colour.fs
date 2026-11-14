@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev colour: the colour and grade family (levels, posterize, duotone, screen print, hue, tint, complement split, solarize, thermal, colour cycle, bleach, teal-orange, sepia, sunset, infrared, sin city, silhouette, gradient fill, bar grade, palette swap, bands to RGB), each a mode, on the whole picture, the figure or the room",
   "CREDIT": "simply-creative FX library (Chris), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["colour", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

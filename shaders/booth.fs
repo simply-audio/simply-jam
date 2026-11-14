@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev booth: several snapshots at once. A persistent atlas of ½-size snapshots (2×2, or 3×2 for the crowd) written one at a time on kicks or beats, shown as fading layers, a photo-booth sheet, sliding prints, split panes or a crowd of past figures.",
   "CREDIT": "simply-creative FX library (FX 174, 179, 196, 276, 282, 286), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["time", "history", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

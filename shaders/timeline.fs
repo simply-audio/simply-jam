@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev timeline: the camera's own past from an atlas ring (16 quarter-size slots over `reach` seconds), as delays, scrubs, slit-scans, per-pixel time maps, ghosts and echoes of the figure, and the figure and the room on different clocks.",
   "CREDIT": "simply-creative FX library (Chris), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["time", "history", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

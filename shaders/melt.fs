@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "Things that flow: one feedback buffer advected. 0 the figure dissolves upward into smoke (FX 80), 1 pixel sort, bright streaks falling (81), 2 the room melts and drips (112), 3 the room flows like liquid on the mids (183), 4 pixel rain on the hats (228), 5 the figure's colours bleed into the room like ink (237).",
   "CREDIT": "Chris Poucet, simply-creative FX 80 81 112 183 228 237, ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["time", "feedback", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

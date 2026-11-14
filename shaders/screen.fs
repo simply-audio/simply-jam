@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev screen: screens and film stock — CRT, film print, VHS, night vision, hologram figure, hat static, hat scanline shove, hat grain. One mode per look, `where` puts it on the whole picture, the figure or the room.",
   "CREDIT": "simply-creative FX library (FX 22 57 58 87 92 180 212 255), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["texture", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

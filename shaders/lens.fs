@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev lens: blur and focus, depth-aware. Gaussian blur / rack focus / dreamy figure, pressure breath, mids focus pull, tilt-shift, zoom blur, motion blur, hex bokeh, depth fog, smoke room. `where` picks the layer that goes soft (0 all, 1 figure, 2 room).",
   "CREDIT": "simply-creative FX 1, 55, 114, 115, 148, 190, 197, 227, 257, 287, 300, ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["blur", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

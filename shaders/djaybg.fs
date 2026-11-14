@@ -1,6 +1,6 @@
 /*{
   "DESCRIPTION": "djaybg: you in front, djay Pro behind. The ML depth map cuts the figure (near) out of the camera and lays it over djay's picture; brightness depth stands in until the model is ready.",
-  "CATEGORIES": ["tussen audiodev"],
+  "CATEGORIES": ["figure", "two-pictures", "depth", "sound"],
   "INPUTS": [
     { "NAME": "cam", "TYPE": "image" },
     { "NAME": "plate", "TYPE": "image" },

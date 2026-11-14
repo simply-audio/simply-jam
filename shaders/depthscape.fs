@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "audiodev depthscape: depth made visible. Keys (luma, hats, dual), the moving cut (pressure plane, clock tide, bass push, bass sink), parallax (wiggle, 3-plane dolly, paper slices), contours, depth rainbow, Joy Division topo lines, depth gradient map, blocky cut. `other` is what shows on the far side of a cut.",
   "CREDIT": "simply-creative FX 31, 54, 61, 62, 63, 78, 127, 189, 215, 224, 245, 251, 275, 285, 292, 294, ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["figure", "depth", "sound", "beat", "modes", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },

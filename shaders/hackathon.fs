@@ -1,7 +1,7 @@
 /*{
   "DESCRIPTION": "The hackathon look (tussen-composite v01–v21): the gel bench (now in magenta, the past in teal, summed as light), cel bands on the figure riding the hats, and on every kick the figure's outline frozen and dissolving into embers that radiate outward. Highs fringe the frame. Also FX 70 (dual gel), 47 (edge dust), 176/289 (hat glitter/shards), 284 (falling dust).",
   "CREDIT": "Chris Poucet, tussen hackathon session (tussen-composite v01–v21), ported to tussen ISF",
-  "CATEGORIES": ["audiodev"],
+  "CATEGORIES": ["whole-look", "figure", "history", "depth", "sound", "beat", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },
