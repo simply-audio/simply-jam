@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# jam: put simply-jam's shaders on a running tussen, from the command line.
+#
+#   jam pad <row>/<col> <shader> [--mode N] [--amount X]   the pad's look becomes this shader
+#   jam shaders                                             the shaders you can load
+#   jam pads                                                what each Launchpad pad switches to
+#
+# Pads are named as tussen names them: row 1 is the bottom row, column 1 the left.
+# Needs tussen running with MCP on (Settings › Advanced › Hub), plus curl and jq.
+set -euo pipefail
+
+URL="${TUSSEN_MCP:-http://127.0.0.1:9097/mcp}"
+CONTROLLER="${JAM_CONTROLLER:-launchpad-x}"
+OUTPUT="${JAM_OUTPUT:-stage}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SHADERS="$HERE/shaders"
+
+die() { echo "jam: $*" >&2; exit 1; }
+command -v jq >/dev/null || die "needs jq"
+
+SID=""
+mcp_start() {
+  SID=$(curl -s -m 5 -D - -o /dev/null -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+    -X POST "$URL" -d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"jam","version":"0.1"}}}' \
+    | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r') || true
+  [ -n "$SID" ] || die "tussen isn't answering at $URL (is it running, with MCP for agents on?)"
+  curl -s -m 5 -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -H "Mcp-Session-Id: $SID" \
+    -X POST "$URL" -d '{"jsonrpc":"2.0","method":"notifications/initialized"}' >/dev/null
+}
+
+# call <tool> <json args>: prints the tool's answer (JSON); fails with its message.
+call() {
+  local out text err
+  out=$(curl -s -m 15 -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -H "Mcp-Session-Id: $SID" \
+    -X POST "$URL" -d "$(jq -cn --arg n "$1" --argjson a "$2" '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:$n,arguments:$a}}')")
+  out=$(printf '%s' "$out" | sed -n 's/^data: //p' | tail -1)
+  err=$(printf '%s' "$out" | jq -r '.error.message // empty')
+  [ -z "$err" ] || die "$1: $err"
+  text=$(printf '%s' "$out" | jq -r '.result.content[0].text')
+  [ "$(printf '%s' "$out" | jq -r '.result.isError // false')" = "false" ] || die "$1: $text"
+  printf '%s' "$text"
+}
+
+cmd_shaders() {
+  for f in "$SHADERS"/*.fs; do
+    local name desc
+    name=$(basename "$f" .fs)
+    desc=$(sed -n '/\/\*{/,/}\*\//p' "$f" | sed 's|^/\*||; s|\*/$||' | jq -r '.DESCRIPTION // ""' 2>/dev/null | cut -c1-90)
+    printf '%-12s %s\n' "$name" "$desc"
+  done
+}
+
+cmd_pads() {
+  mcp_start
+  call get_controller_mapping "$(jq -cn --arg c "$CONTROLLER" '{controller:$c}')" \
+    | jq -r '.rows[] | select(.control|test("^pad/[0-9]+/[0-9]+$")) | "\(.control)\t\(.action | split("/") | if .[0]=="swap" then "look: " + .[-2] + " (" + .[-1] + ")" else join("/") end)"' \
+    | sort -t/ -k2,2nr -k3,3n
+}
+
+cmd_pad() {
+  local pad="${1:-}" shader="${2:-}"; shift 2 || true
+  [[ "$pad" =~ ^[0-9]+/[0-9]+$ ]] || die "which pad? e.g. jam pad 2/5 paint (row 1 is the bottom)"
+  [ -n "$shader" ] || die "which shader? (jam shaders lists them)"
+  local file="$SHADERS/${shader%.fs}.fs"
+  [ -f "$file" ] || die "no shader called '$shader' (jam shaders lists them)"
+  local mode="" amount=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --mode) mode="$2"; shift 2 ;;
+      --amount) amount="$2"; shift 2 ;;
+      *) die "unknown option $1" ;;
+    esac
+  done
+
+  mcp_start
+  # The pad must switch to a look: its row's action is swap/video/<output>/shader/…/<look>/<when>.
+  local action look
+  action=$(call get_controller_mapping "$(jq -cn --arg c "$CONTROLLER" '{controller:$c}')" \
+    | jq -r --arg p "pad/$pad" '[.rows[] | select(.control==$p) | .action][0] // ""')
+  [ -n "$action" ] || die "pad/$pad isn't mapped on $CONTROLLER"
+  [[ "$action" == swap/video/*/shader/* ]] || die "pad/$pad drives '$action', not a look: only look pads take a shader"
+  look=$(printf '%s' "$action" | awk -F/ '{print $(NF-1)}')
+  local output; output=$(printf '%s' "$action" | awk -F/ '{print $3}')
+
+  # Copy the shader into the playing scene's folder (an existing file of that name is kept as .bak).
+  local scene dir
+  scene=$(call get_state '{}' | jq -r '.scene.current')
+  dir="$HOME/Music/tussen/scenes/$scene/shaders"
+  mkdir -p "$dir"
+  local name; name=$(basename "$file")
+  if [ -f "$dir/$name" ] && ! cmp -s "$file" "$dir/$name"; then cp "$dir/$name" "$dir/$name.bak"; fi
+  cp "$file" "$dir/$name"
+
+  call set_shader_file "$(jq -cn --arg o "$output" --arg s "$look" --arg f "shaders/$name" '{output:$o,slot:$s,file:$f}')" >/dev/null
+  [ -z "$mode" ]   || call set_shader_param "$(jq -cn --arg o "$output" --arg s "$look" --argjson v "$mode"   '{output:$o,slot:$s,param:"mode",value:$v}')" >/dev/null
+  [ -z "$amount" ] || call set_shader_param "$(jq -cn --arg o "$output" --arg s "$look" --argjson v "$amount" '{output:$o,slot:$s,param:"amount",value:$v}')" >/dev/null
+
+  # Wait for it to compile, and say whether it runs.
+  local state=""
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    state=$(call list_shaders '{}' | jq -r --arg o "$output" --arg s "$look" \
+      '.chains[] | select(.output==$o) | .shaders[] | select(.name==$s) | if .error then "error: " + .error elif .running then "running" else "" end')
+    [ -z "$state" ] || break
+    sleep 0.5
+  done
+  echo "pad/$pad → $look on $output is now ${name%.fs} ($scene): ${state:-still compiling}"
+  [[ "$state" != error:* ]] || exit 1
+}
+
+case "${1:-help}" in
+  pad) shift; cmd_pad "$@" ;;
+  shaders) cmd_shaders ;;
+  pads) cmd_pads ;;
+  help|-h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) die "unknown command '$1' (jam help)" ;;
+esac

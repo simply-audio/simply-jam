@@ -75,6 +75,7 @@ Names you will get wrong otherwise:
 | check a picture privately | the Video tab's pills show any output in the app's window, sending nothing |
 | a source into a mix | `add_to_mix {mix:"main", input}` / `remove_from_mix` |
 | change scenes | `scene_switch {name, at:"next_bar"}` |
+| a simply-jam shader on a look pad | `bin/jam pad <row>/<col> <shader> [--mode N]` from the simply-jam folder (row 1 = bottom): copies it into the scene and `set_shader_file`s the pad's look |
 | undo | `history` first, then `undo {expect: <the position history gave>}` / `redo {expect}`; an agent can't undo, redo or `goto_history` past an edit to Main's mix (its gains, mutes, which channels it holds, its limiter, a plugin on it): ask the performer to undo it in the window |
 
 ## Deeper

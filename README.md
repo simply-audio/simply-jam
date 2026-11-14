@@ -38,6 +38,19 @@ pi mcp add tussen --url http://127.0.0.1:9097/mcp
 
 If anything isn't installed or connected yet, the `tussen-setup` skill walks you and the agent through it.
 
+## Put a shader on a pad, without an agent
+
+`bin/jam` puts any shader from [`shaders/`](shaders/) on a Launchpad look pad of the running tussen:
+
+```sh
+bin/jam shaders              # what you can load
+bin/jam pads                 # what each pad does now
+bin/jam pad 2/5 paint        # pad row 2 (from the bottom), column 5 now plays paint
+bin/jam pad 1/3 print --mode 4 --amount 0.5
+```
+
+It copies the shader into the playing scene and swaps it into that pad's look. It needs curl and jq; `JAM_CONTROLLER` picks another controller (default `launchpad-x`).
+
 Other agents (Claude Code, Codex, …) can use the skills too: point them at `skills/` and connect them to `http://127.0.0.1:9097/mcp`.
 
 ## Community
