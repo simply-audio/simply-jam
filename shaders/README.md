@@ -52,7 +52,7 @@ Shaders I believe in: ISF GLSL files (`.fs`) that tussen runs on a video output'
 
 | Shader | What it does | Needs | Tags | Parameters | Passes |
 |---|---|---|---|---|---|
-| [`padfx`](padfx.fs) | Pad FX: 24 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, heat haze, mirror, tile, ripple, twirl, pixel, slices, glitch), reads (RGB split, blur, figure lift), memory (trails, tunnel, datamosh drag, echo of the last beat), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live. | sound | performance-pads, feedback, history, sound, beat, pressure | 25 | 4 |
+| [`padfx`](padfx.fs) | Pad FX: 24 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, mirror, tile, ripple, twirl, pixel, slices, random patches that jump on the beat and kick, glitch), reads (RGB split, blur, figure lift), memory (trails, tunnel, datamosh drag, echo of the last beat), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live. | sound | performance-pads, feedback, history, sound, beat, pressure | 25 | 4 |
 
 ## Adding one
 

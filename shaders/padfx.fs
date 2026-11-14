@@ -1,5 +1,5 @@
 /*{
-  "DESCRIPTION": "Pad FX: 24 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, heat haze rising off the floor on the lows, mirror, tile, ripple, twirl, pixel, slices, glitch), reads (RGB split, blur, figure lift: the bright parts pushed forward over a darkened room, swelling on the kick), memory (trails, tunnel, datamosh drag: blocks of the last frame dragged along, a kick lets the live picture back in; echo: a ghost of the picture one beat ago), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak flaring on kicks and flickering with the highs, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live.",
+  "DESCRIPTION": "Pad FX: 24 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, mirror, tile, ripple, twirl, pixel, slices, patches: a few random regions pixelate, shove or stretch and jump to new places on every beat and kick, harder = more and stronger patches, glitch), reads (RGB split, blur, figure lift: the bright parts pushed forward over a darkened room, swelling on the kick), memory (trails, tunnel, datamosh drag: blocks of the last frame dragged along, a kick lets the live picture back in; echo: a ghost of the picture one beat ago), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak flaring on kicks and flickering with the highs, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live.",
   "CREDIT": "audiodev set; maths from the simply-creative FX library (12, 13, 23, 26, 27, 28, 41, 42, 50, 52, 71, 95, 131 …)",
   "CATEGORIES": ["performance-pads", "feedback", "history", "sound", "beat", "pressure"],
   "INPUTS": [
@@ -7,13 +7,13 @@
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
     { "NAME": "fx_zoom", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
-    { "NAME": "fx_haze", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_mirror", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_tile", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_ripple", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_twirl", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_pixel", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_slices", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_patches", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_glitch", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_rgb", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_blur", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
@@ -42,7 +42,8 @@
 
 // ── grab these first ────────────────────────────────────────────────
 const float ZOOM_MAX    = 0.45;  // fraction of the frame cut away at full press
-const float HAZE_AMP    = 0.008; // uv the haze bends the picture at full press, at the floor
+const vec2  PATCH_GRID  = vec2(7.0, 4.0); // patches live one per cell of this grid, at most
+const float PATCH_SHARE = 0.4;   // share of cells holding a patch at full press (a light press: about 1 in 12)
 const float LIFT_GROW   = 0.10;  // how much bigger the lifted figure gets at full press
 const vec2  LIFT_SHADOW = vec2(0.012, -0.018); // the lifted figure's shadow falls down-right (y up)
 const float DRAG_PX     = 0.010; // uv a datamosh block drags per frame at full press
@@ -126,14 +127,6 @@ vec2 warpUV(vec2 uv, float kick) {
   float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
   vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
   if (fx_zoom > 0.001) { p *= 1.0 - ZOOM_MAX * fx_zoom * (0.8 + 0.2 * kick); }
-  if (fx_haze > 0.001) {
-    // heat haze: wobbling refraction that rises (y up) and is strongest at the floor; the lows thicken it
-    float lows = sigB().r;
-    float w = sin(uv.y * 38.0 - TIME * 5.0 + 2.5 * sin(uv.x * 11.0 + TIME * 0.7))
-            + 0.5 * sin(uv.y * 71.0 - TIME * 8.0 + uv.x * 23.0);
-    float floorHeat = mix(1.0, 0.35, uv.y);
-    p += vec2(w, 0.4 * sin(uv.x * 29.0 - TIME * 3.0 + w)) * HAZE_AMP * fx_haze * floorHeat * (0.6 + 0.6 * lows + 0.5 * kick);
-  }
   if (fx_twirl > 0.001) {
     float r = length(p);
     p = rot(p, 6.2831853 * TWIRL_TURNS * fx_twirl * smoothstep(0.7, 0.0, r));
@@ -153,6 +146,36 @@ vec2 warpUV(vec2 uv, float kick) {
   if (fx_slices > 0.001) {
     float row = floor(q.y * 18.0);
     q.x += (hash(vec2(row, floor(TIME * 8.0))) - 0.5) * 0.25 * fx_slices * step(0.4, hash(vec2(row, 7.0)));
+  }
+  if (fx_patches > 0.001) {
+    // patches: random rectangles, at most one per grid cell, re-thrown on every beat and every kick;
+    // each pixelates, shoves its contents aside, or stretches its left edge across itself
+    float age = kickAge();
+    float kickSeed = step(age, 30.0) * fract(floor((TIME - age) * 4.0) * 0.6180339) * 977.0;
+    float seed = kickSeed + floor(BEAT) * 13.0;
+    vec2 off = vec2(hash(vec2(seed, 1.0)), hash(vec2(seed, 2.0)));
+    vec2 g = q * PATCH_GRID + off;
+    vec2 cell = floor(g);
+    vec2 f = g - cell;
+    float pick = step(hash(cell + seed), mix(0.08, PATCH_SHARE, fx_patches));
+    vec2 lo = vec2(hash(cell + seed + 3.1), hash(cell + seed + 4.7)) * 0.45;
+    vec2 hi = lo + 0.3 + 0.25 * vec2(hash(cell + seed + 5.3), hash(cell + seed + 6.9));
+    float inside = pick * step(lo.x, f.x) * step(f.x, hi.x) * step(lo.y, f.y) * step(f.y, hi.y);
+    if (inside > 0.5) {
+      float kind = hash(cell + seed + 8.2);
+      float s = fx_patches * (0.6 + 0.4 * kick);
+      if (kind < 0.4) {
+        float cells = mix(90.0, 10.0, s);
+        vec2 cs = vec2(cells, cells / aspect);
+        q = (floor(q * cs) + 0.5) / cs;
+      } else if (kind < 0.7) {
+        q += (vec2(hash(cell + seed + 9.4), hash(cell + seed + 10.1)) - 0.5) * 0.18 * s;
+      } else {
+        float edge = (cell.x + lo.x - off.x) / PATCH_GRID.x;
+        float row = floor(q.y * RENDERSIZE.y / 3.0);
+        q.x = mix(q.x, edge, s) + (hash(vec2(row, floor(TIME * 15.0))) - 0.5) * 0.01 * s;
+      }
+    }
   }
   if (fx_glitch > 0.001) {
     vec2 b = floor(q * vec2(12.0, 8.0));
