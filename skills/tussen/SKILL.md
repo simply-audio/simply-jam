@@ -75,6 +75,7 @@ Names you will get wrong otherwise:
 | picture out | `set_video_output {output, ndi:"name"}`; `window:true, display:N` is fullscreen (ask first) |
 | check a picture privately | the Video tab's pills show any output in the app's window, sending nothing |
 | a source into a mix | `add_to_mix {mix:"main", input}` / `remove_from_mix` (audio inputs join `main` at unity by default; a clip's sound too) |
+| an edit mix for my headphones | `add_mix {name:"edit", kind:"audio", inputs:["local·djay"]}`, then `set_output_mixes {output:"phones", mixes:[{mix:"main", gain_db:-12}, {mix:"edit"}]}` (your headphones play both; see [sound and control](references/sound-and-control.md)) |
 | change vibes | `layer_switch {layer:"vibe", name, at:"next_bar"}`: changes the looks, offers and tempo, never the sound |
 | studio rig to the PA | `layer_load {layer:"outputs", name:"pa"}` (what would change, in words), then `layer_switch {layer:"outputs", name:"pa"}`: at once, only what differs moves, never an undo step (inputs the same; see [sound and control](references/sound-and-control.md)) |
 | choose which speakers you hear | `update_destination {name, mute}` on the others (see [sound and control](references/sound-and-control.md)) |
@@ -86,20 +87,34 @@ Names you will get wrong otherwise:
 
 - **Everything that drives something is a mapping row**, in the running mapping set `~/.config/tussen/mappings/<set>/`. A controller has `<controller>.toml`. **An OSC input has `<input>.toml`** (`model = "osc"`; the shared port's input is `osc`): its `control` is an OSC address pattern (`*` = one segment), matching only messages arriving on that input.
 - **Drive a plugin parameter**: a row `action = "plugin/<slot>/<param-id>"`, with `response = "jump"` for a sender that should move it at once (the default is pickup), an optional `range` (part of the parameter) and `curve` (`linear` | `exp` | `log`). From an OSC sender: `set_controller_mapping {controller: "osc", rows: [{control: "/td/slider/1", action: "plugin/bus/1", response: "jump", curve: "exp"}]}`.
+- **`response = "reset"`** puts the action back where it is saved on the press: a gain, pan, mute or solo (in `main`, or `mix/<name>/channel/<input>/…` in a mix of your own), an output mute, or a plugin/shader parameter. Pushing a MIDI Fighter Twister knob resets what it drives (the knob goes back to its fixed value, the ring follows); any push your mapping leaves unmapped does this.
 - **Send an address on to an output as another**: a row on the OSC input, `action = "osc/<output>/<address>"`, optional `range` (the first number `v` becomes `lo + v·(hi − lo)`). Every argument goes along, timed like the original, whatever the output's filter says. To drop the original, exclude it in the output's filter: `update_destination {name, filter: ["/flux/", "-/flux/beat"]}`.
 - **The hub's own signals have a mapping file too**: `~/.config/tussen/mappings/<set>/local.toml`, `model = "local"`, with the same rows (`range`, `curve`, `response`). Its `control` is one of the hub's own addresses: Main's features `/tussen/local/audio/main/level|peak|onset`, the clock `/tussen/local/clock/bpm|beat|phase|running|onbeat`, a vibe's offered knob `/tussen/local/knob/<name>`. A plugin following Main's level: `set_controller_mapping {controller: "local", rows: [{control: "/tussen/local/audio/main/level", action: "plugin/bus/1", response: "jump", range: [0.2, 0.6]}]}`. A shader parameter following a vibe's knob: `{control: "/tussen/local/knob/drop", action: "video/<mix>/<shader>/<param>"}`.
 - Rows switch with the set (`layer_switch {layer: "mappings", name}`) and are undoable edits. `get_controller_mapping {controller}` reads them; `list_controllers` lists an OSC input or `local` once it has a file.
 
 ## Shaders
 
-- **Rename a shader** with `rename_shader {"mix": "stage", "slot": "look7", "to": "hearts"}`. It keeps its place and settings, and everything that names it follows in one undoable edit: mapping rows `video/stage/look7/<param>`, the lists and picks of `swap/video/stage/shader/…`, and later shaders' bindings that read it. In the window: double-click its name on the Shaders tab.
+- **Rename a shader** with `rename_shader {"mix": "stage", "slot": "look7", "to": "hearts"}`. It keeps its place and settings, and everything that names it follows in one undoable edit: mapping rows `video/stage/look7/<param>`, the lists and picks of `swap/video/stage/shader/…`, and later shaders' bindings that read it. Mid-show, renaming keeps the shader's swap pick and knob's live value.
 - **New shaders are named after their file**: `add_shader` without `slot` names `melt.fs` `melt`, then `melt-2`. Give `slot` only when you want another name.
 - **Which shader a swap is running** shows in `get_state` and `list_shaders`. On each shader a swap holds, `live_bypass` is `true` (waiting) or `false` (the swap's pick). On its mix, `swaps` lists each shader swap with `running`. Absent `live_bypass` means the shader runs as set (`bypass`). This is playing state: never saved, never undone.
+- **Where a controller holds a shader parameter** shows as `live` on the parameter in `get_state` and `list_shaders`, 0..1 of its range. Absent while the parameter runs at its fixed `value`. `set_shader_param` sets the fixed value (where a reset goes back to).
+
+## Audio mixes
+
+- **Mixes of your own**: `add_mix {name:"edit", kind:"audio", inputs:["local·djay"]}` makes an audio mix holding only those channels (empty = silent); `rename_mix {kind:"audio", name, to}`, `remove_mix {kind:"audio", name}` (refused while an output plays it). `add_to_mix`/`remove_from_mix`/`set_mix_gain`/`set_mix_mute`/`set_mix_limiter {mix:"<name>"}` work on it as on `main`. `set_mix_timing {mix, timing:"room"|"live"}`: live = what arrives now (a player's headphones); `main` is always the room's.
+- **An output device plays several mixes**: `set_output_mixes {output, mixes:[{mix:"main", gain_db:-12}, {mix:"edit"}]}` (−60..12 dB, each once; an RTP stream plays one). `get_state` shows them in `destinations[].mixes`; `update_destination {mix}` still sets one mix at 0 dB.
+- **OSC/controller actions**: `mix/<mix>/channel/<input>/gain|pan|mute` for any mix (live, never saved); `solo` only on `mix/main/…`.
+- An agent should not change `main` without the user; a mix of its own is the place to build.
 
 ## Inputs and outputs
 
 - **Switch off an input or output** with `set_enabled {input | output, enabled}`. Off, it opens nothing, captures or plays nothing and shows no error; `get_state` shows `disabled: true`, and the inputs or outputs file holds `enabled = false`.
 - **An input or output whose device isn't plugged in** shows `unplugged: true`, and its status or error reads `<device> isn't plugged in`. That is not a failure: it comes back by itself.
+
+## Pro: recording and replaying video
+
+- **Record video**: `record_start {name?, video?}` in Pro records each video output's picture with the take, one `video-<output>.mp4` per output (H.264, main's sound in it); `video: false` skips it for one take, `set_record_video {on}` switches it for all (saved as `[record] video`; `get_state` → `record.video`). `record_status` → `video` (each file's `frames`, `dropped`, `size_bytes`) and `size_bytes` (the take so far). `list_takes` → each take's `videos`. The free edition ignores `video` and plays a Pro take without its pictures.
+- **Replay**: replaying a take (`replay_start`) shows its recorded pictures on the outputs of the same name instead of the live picture, in time with the sound; `replay_stop` brings the live picture back. `replay_start {take, video: false}` replays over the live picture instead: the outputs show the live engine, driven by the replayed sound, controls and beat (to loop a take while editing a shader). Omitted or `true`: the recorded pictures.
 
 ## Deeper
 
