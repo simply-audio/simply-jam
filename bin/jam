@@ -93,7 +93,10 @@ cmd_pad() {
   fi
 
   # Copy the shader into the playing vibe's folder (an existing file of that name is kept as .bak).
-  local dir="$HOME/Music/tussen/$folder/$current/shaders"
+  # Layers hubs use ~/Music/simply.audio/tussen; scene hubs use ~/Music/tussen.
+  local base dir
+  if [ "$folder" = "vibes" ]; then base="$HOME/Music/simply.audio/tussen"; else base="$HOME/Music/tussen"; fi
+  dir="$base/$folder/$current/shaders"
   mkdir -p "$dir"
   local name; name=$(basename "$file")
   if [ -f "$dir/$name" ] && ! cmp -s "$file" "$dir/$name"; then cp "$dir/$name" "$dir/$name.bak"; fi

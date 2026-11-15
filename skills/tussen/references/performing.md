@@ -42,25 +42,27 @@ $B ctl <method> '<json>' </dev/null      # always </dev/null: nothing may wait f
 
 ## Shaders
 
-The vibe's folder is `~/Music/tussen/vibes/<vibe>/` (`get_state` →
+The vibe's folder is `~/Music/simply.audio/tussen/vibes/<vibe>/` (`get_state` →
 `layers.vibe.current`); shaders live in its `shaders/`. **Saving the file
 reloads it.**
 
-Shaders live on **video outputs**: an output reads named inputs (each a
-video channel) through its chain and goes to NDI, a window or the cue.
+Shaders live on **video mixes**: a mix reads named inputs (each a video
+channel) through its chain, then an output shows the mix.
 
 ```sh
-$B ctl add_video_output '{"name":"stage","inputs":["cam",{"name":"plate","channel":"td"}],"ndi":"tussen stage"}'
-$B ctl add_shader '{"mix":"stage","file":"shaders/x.fs","index":0}'   # index 0: first in the chain
-$B ctl list_shaders '{"mix":"stage"}'     # running? error + line? what each image reads, what is missing
+# add_input with a camera feeds a mix by itself (the one an output shows, else a new Video 1)
+$B ctl add_input '{"name":"cam","kind":"camera"}'
+$B ctl add_video_output '{"name":"stage","ndi":"tussen stage"}'
+$B ctl add_shader '{"mix":"Video 1","file":"shaders/x.fs","index":0}'   # index 0: first in the chain
+$B ctl list_shaders '{"mix":"Video 1"}'     # running? error + line? what each image reads, what is missing
 ```
 
 A shader's `image` inputs bind by `bind` (`set_shader_bind`), then by
 name (an image `plate` reads the input `plate`, or an earlier shader of
 that name), then the first one left reads the picture so far. An input
 whose channel is missing reads black and is said in `missing`; nothing
-is refused. An output renders only while something shows it (NDI, a
-window, the cue, its inspector).
+is refused. A mix renders only while an output shows it (NDI, a window,
+the cue, its inspector), or the Video tab is open.
 
 Always read `list_shaders` after a save: `running: true` and no `error`.
 The engine's `fps` is there too: if it drops below the display's rate, the
@@ -121,8 +123,8 @@ The pattern that works: give the shader one `float` parameter (0..1, default
 0) per effect, `mix` it in, then drive each parameter from a pad:
 
 ```sh
-$B ctl set_shader_param_source '{"mix":"stage","slot":"hearts","param":"fx_glitch",
-  "source":{"osc":"/tussen/local/midi/launchpad-x-lpx-midi-out/1/note/43/pressure"}}'
+$B ctl set_controller_mapping '{"controller":"launchpad-x","rows":[{"control":"pad/4/3/pressure","action":"video/stage/hearts/fx_glitch","response":"jump"}]}'
+# or source: {"osc":"/tussen/local/midi/launchpad-x-lpx-midi-out/1/note/43/pressure"}
 ```
 
 - **MIDI arrives as OSC**, one normalized float 0..1 per control, under

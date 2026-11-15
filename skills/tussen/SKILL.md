@@ -53,7 +53,7 @@ Names you will get wrong otherwise:
 - **MIDI devices are added by device name**, with no port:
   `add_input {"name":"launchpad-x-lpx-midi-out","kind":"midi"}`
   (names from `list_midi_inputs`).
-- **The vibe's folder** is `~/Music/tussen/vibes/<vibe>/` (`get_state` →
+- **The vibe's folder** is `~/Music/simply.audio/tussen/vibes/<vibe>/` (`get_state` →
   `layers.vibe.current`); its shaders live in `shaders/`, and paths are relative to
   the vibe's folder (`shaders/x.fs`).
 - **The Shaders tab** (⌘7, once an output has a shader) is where the operator edits shader files in the app: Apply (⌘S) writes only once it compiles. Scene files and their shader library are editable; Standard shaders are read-only.
@@ -64,23 +64,42 @@ Names you will get wrong otherwise:
 
 | goal | calls |
 |---|---|
-| an output from the camera | `add_mix {name:"stage", kind:"video", inputs:["cam"]}` then `add_video_output {name:"stage", mix:"stage", ndi?}` (shaders live on the mix, see [sound and control](references/sound-and-control.md)) |
+| an output from the camera | `add_input {name:"cam", kind:"camera"}` feeds a video mix by itself (the one an output shows, else the first, else a new `Video 1`); then `add_video_output {name:"stage", ndi?}` (shaders live on the mix, see [sound and control](references/sound-and-control.md)) |
 | two pictures combined | `set_mix_inputs {mix, inputs:["cam", {"name":"plate","channel":"td"}]}`; a shader's `image` inputs named `cam` and `plate` read them by name (`set_shader_bind` to say otherwise) |
 | a shader on the picture | write `shaders/x.fs`, then `add_shader {mix, file, index?}`, then `list_shaders` (its `missing` says what reads black) |
 | change a shader | read it (`list_shaders` gives each shader's `path`), then `check_shader {mix, slot, source}` with the whole new text: write the file only if `ok` (the hub reloads it within ¼ s); if not, fix `error.line` (a line in the source you sent) and check again. A broken save never stops the picture, but checking first means the operator never sees an error |
-| a slider follows a pad's pressure | `set_shader_param_source {mix, slot, param, source:{"osc":"/tussen/local/midi/launchpad-x-lpx-midi-out/1/note/43/pressure"}}` (the exact address: device and channel from `filter_preview`) |
-| a slider follows the music | source `"beat"`, `"bar"`, `{"level":"main"}` (+ `set_shader_param_level` for its span and smoothing) |
+| a slider follows a pad's pressure | `set_controller_mapping {controller:"launchpad-x", rows:[{control:"pad/4/3/pressure", action:"video/<mix>/<slot>/<param>", response:"jump"}]}` (or source `{"osc":"/tussen/local/midi/…"}` for the exact address) |
+| a slider follows the music | source `"beat"`, `"bar"`, `{"level":"main"}` (+ `set_shader_param_level` for its span and smoothing), or a mapping row: `set_controller_mapping {controller:"local", rows:[{control:"/tussen/local/audio/main/level", action:"video/<mix>/<slot>/<param>", range:[0.2,0.6]}]}` |
 | switch shaders from a pad | map the pad to `swap/video/<mix>/shader/<a>/<b>…/<step>/<when>` (`set_controller_mapping`) |
 | cut or fade an input from a pad | `swap/video/<mix>/input/<slot>/<channels…>/<step>/<when>`; `swap/video/<mix>/fade/<slot>/<beats>/<channels…>/<step>/<when>` |
 | picture out | `set_video_output {output, ndi:"name"}`; `window:true, display:N` is fullscreen (ask first) |
 | check a picture privately | the Video tab's pills show any output in the app's window, sending nothing |
-| a source into a mix | `add_to_mix {mix:"main", input}` / `remove_from_mix` |
+| a source into a mix | `add_to_mix {mix:"main", input}` / `remove_from_mix` (audio inputs join `main` at unity by default; a clip's sound too) |
 | change vibes | `layer_switch {layer:"vibe", name, at:"next_bar"}`: changes the looks, offers and tempo, never the sound |
 | studio rig to the PA | `layer_load {layer:"outputs", name:"pa"}` (what would change, in words), then `layer_switch {layer:"outputs", name:"pa"}`: at once, only what differs moves, never an undo step (inputs the same; see [sound and control](references/sound-and-control.md)) |
 | choose which speakers you hear | `update_destination {name, mute}` on the others (see [sound and control](references/sound-and-control.md)) |
 | drive tussen over OSC | `/tussen/action/<action>`, any action `list_actions` gives ([sound and control](references/sound-and-control.md)) |
-| a simply-jam shader on a look pad | `bin/jam pad <row>/<col> <shader> [--mode N]` from the simply-jam folder (row 1 = bottom): copies it into the scene and `set_shader_file`s the pad's look |
+| a simply-jam shader on a look pad | `bin/jam pad <row>/<col> <shader> [--mode N]` from the simply-jam folder (row 1 = bottom): copies it into the vibe and `set_shader_file`s the pad's look |
 | undo | `history` first, then `undo {expect: <the position history gave>}` / `redo {expect}`; an agent can't undo, redo or `goto_history` past an edit to Main's mix (its gains, mutes, which channels it holds, its limiter, a plugin on it): ask the performer to undo it in the window |
+
+## Mappings
+
+- **Everything that drives something is a mapping row**, in the running mapping set `~/.config/tussen/mappings/<set>/`. A controller has `<controller>.toml`. **An OSC input has `<input>.toml`** (`model = "osc"`; the shared port's input is `osc`): its `control` is an OSC address pattern (`*` = one segment), matching only messages arriving on that input.
+- **Drive a plugin parameter**: a row `action = "plugin/<slot>/<param-id>"`, with `response = "jump"` for a sender that should move it at once (the default is pickup), an optional `range` (part of the parameter) and `curve` (`linear` | `exp` | `log`). From an OSC sender: `set_controller_mapping {controller: "osc", rows: [{control: "/td/slider/1", action: "plugin/bus/1", response: "jump", curve: "exp"}]}`.
+- **Send an address on to an output as another**: a row on the OSC input, `action = "osc/<output>/<address>"`, optional `range` (the first number `v` becomes `lo + v·(hi − lo)`). Every argument goes along, timed like the original, whatever the output's filter says. To drop the original, exclude it in the output's filter: `update_destination {name, filter: ["/flux/", "-/flux/beat"]}`.
+- **The hub's own signals have a mapping file too**: `~/.config/tussen/mappings/<set>/local.toml`, `model = "local"`, with the same rows (`range`, `curve`, `response`). Its `control` is one of the hub's own addresses: Main's features `/tussen/local/audio/main/level|peak|onset`, the clock `/tussen/local/clock/bpm|beat|phase|running|onbeat`, a vibe's offered knob `/tussen/local/knob/<name>`. A plugin following Main's level: `set_controller_mapping {controller: "local", rows: [{control: "/tussen/local/audio/main/level", action: "plugin/bus/1", response: "jump", range: [0.2, 0.6]}]}`. A shader parameter following a vibe's knob: `{control: "/tussen/local/knob/drop", action: "video/<mix>/<shader>/<param>"}`.
+- Rows switch with the set (`layer_switch {layer: "mappings", name}`) and are undoable edits. `get_controller_mapping {controller}` reads them; `list_controllers` lists an OSC input or `local` once it has a file.
+
+## Shaders
+
+- **Rename a shader** with `rename_shader {"mix": "stage", "slot": "look7", "to": "hearts"}`. It keeps its place and settings, and everything that names it follows in one undoable edit: mapping rows `video/stage/look7/<param>`, the lists and picks of `swap/video/stage/shader/…`, and later shaders' bindings that read it. In the window: double-click its name on the Shaders tab.
+- **New shaders are named after their file**: `add_shader` without `slot` names `melt.fs` `melt`, then `melt-2`. Give `slot` only when you want another name.
+- **Which shader a swap is running** shows in `get_state` and `list_shaders`. On each shader a swap holds, `live_bypass` is `true` (waiting) or `false` (the swap's pick). On its mix, `swaps` lists each shader swap with `running`. Absent `live_bypass` means the shader runs as set (`bypass`). This is playing state: never saved, never undone.
+
+## Inputs and outputs
+
+- **Switch off an input or output** with `set_enabled {input | output, enabled}`. Off, it opens nothing, captures or plays nothing and shows no error; `get_state` shows `disabled: true`, and the inputs or outputs file holds `enabled = false`.
+- **An input or output whose device isn't plugged in** shows `unplugged: true`, and its status or error reads `<device> isn't plugged in`. That is not a failure: it comes back by itself.
 
 ## Deeper
 
