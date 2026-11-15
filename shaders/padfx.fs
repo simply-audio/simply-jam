@@ -1,5 +1,5 @@
 /*{
-  "DESCRIPTION": "Pad FX: 32 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, liquid: the picture flows like water on the mids, mirror, tile, ripple, twirl, pixel, slices, patches: a few random regions pixelate, shove or stretch and jump to new places on every beat and kick, harder = more and stronger patches, drip: columns run down over each bar and snap back on the downbeat, tear: a band torn sideways that jumps on every beat and shoves on the kick, glitch), reads (RGB split, blur, figure lift: the bright parts pushed forward over a darkened room, swelling on the kick, chromatic bloom: bright parts glow with colour fringes, swelling on the mids and kick, neon edges: outlines in a colour that changes every beat over a darkened picture), memory (trails, tunnel, datamosh drag: blocks of the last frame dragged along, a kick lets the live picture back in; echo: a ghost of the picture one beat ago, slit-scan: past the slit the picture streams away sideways, the slit jumping every bar and streaming faster on the lows, colour lag: green and blue run behind red so movement leaves colour trails, a kick snaps them back), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak flaring on kicks and flickering with the highs, film burn: holes burn through the picture with hot orange rims, growing on the lows and flaring on the kick, blackout, scanlines). Sits last on every chain, never swapped, so the pads work on whichever look is live.",
+  "DESCRIPTION": "Pad FX: 40 performance effects, each an fx_* float 0..1 (pad pressure: harder = stronger), all 0 = the picture untouched. Warps (zoom, liquid: the picture flows like water on the mids, mirror, tile, ripple, twirl, pixel, slices, patches: a few random regions pixelate, shove or stretch and jump to new places on every beat and kick, harder = more and stronger patches, drip: columns run down over each bar and snap back on the downbeat, tear: a band torn sideways that jumps on every beat and shoves on the kick, glitch), reads (RGB split, blur, figure lift: the bright parts pushed forward over a darkened room, swelling on the kick, chromatic bloom: bright parts glow with colour fringes, swelling on the mids and kick, neon edges: outlines in a colour that changes every beat over a darkened picture), memory (trails, tunnel, datamosh drag: blocks of the last frame dragged along, a kick lets the live picture back in; echo: a ghost of the picture one beat ago, slit-scan: past the slit the picture streams away, a horizontal slit by default (below it the picture pours downward; slit_dir 1 for the vertical slit streaming sideways), wandering a little each bar (slit_pos, slit_jump) and streaming faster on the lows, colour lag: green and blue run behind red so movement leaves colour trails, a kick snaps them back), grades (invert, mono, hue, posterize, thermal) and finishers (film light leak flaring on kicks and flickering with the highs, film burn: holes burn through the picture with hot orange rims, growing on the lows and flaring on the kick, blackout, scanlines). Eight more: wave (the picture swayed sideways by the shape of the sound wave), contour (brightness drawn as coloured contour lines that climb with the beat, over a darkened picture), halftone (the picture as printed dots that swell on the kick), relief (the picture embossed, lit from a side that changes each beat), glitter (sparkles twinkling yellow to magenta along the outlines, thicker on the kicks and hats), gels (now in magenta, a moment ago in teal, summed as light; the mids push the past further back), rainbow trails (what moves leaves trails that run through the colours) and smoke (bright things trail smoke that rises and curls, faster on the mids). Sits last on every chain, never swapped, so the pads work on whichever look is live.",
   "CREDIT": "audiodev set; maths from the simply-creative FX library (12, 13, 23, 26, 27, 28, 41, 42, 50, 52, 71, 95, 131 …)",
   "CATEGORIES": ["performance-pads", "feedback", "history", "sound", "beat", "pressure"],
   "INPUTS": [
@@ -38,11 +38,23 @@
     { "NAME": "fx_burn", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_blackout", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_scan", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_wave", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_contour", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_halftone", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_relief", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_glitter", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_gels", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_rainbow", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "fx_smoke", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
+    { "NAME": "slit_dir", "TYPE": "long", "MIN": 0, "MAX": 1, "DEFAULT": 0, "VALUES": [0, 1], "LABELS": ["horizontal", "vertical"], "DESCRIPTION": "fx_slit: a horizontal slit, the picture pouring down below it, or the vertical slit streaming sideways" },
+    { "NAME": "slit_pos", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.6, "DESCRIPTION": "fx_slit: where the slit sits (from the bottom, or from the left when vertical)" },
+    { "NAME": "slit_jump", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.3, "DESCRIPTION": "fx_slit: how far the slit wanders on each bar" },
     { "NAME": "gain", "TYPE": "float", "MIN": 0.25, "MAX": 8.0, "DEFAULT": 1.0 }
   ],
   "PASSES": [
     { "TARGET": "sig", "WIDTH": "2", "HEIGHT": "1", "FLOAT": true, "PERSISTENT": true },
     { "TARGET": "echo", "WIDTH": "$WIDTH / 2", "HEIGHT": "$HEIGHT / 2", "FLOAT": true, "PERSISTENT": true },
+    { "TARGET": "lag", "WIDTH": "$WIDTH / 2", "HEIGHT": "$HEIGHT / 2", "FLOAT": true, "PERSISTENT": true },
     { "TARGET": "fb", "PERSISTENT": true },
     {}
   ]
@@ -69,6 +81,13 @@ const float PIXEL_MAX   = 64.0;  // cells across at full press (fewer = bigger)
 const float RGB_MAX     = 0.03;
 const float BLUR_MAX    = 0.02;
 const vec3  THERMAL_LO  = vec3(0.0, 0.0, 0.05);
+const float WAVE_AMP    = 0.08;  // uv the sound wave sways the picture at full press
+const float CONTOUR_N   = 9.0;   // contour lines from black to white
+const float HALFTONE_ROWS = 70.0; // dot rows a picture height
+const float GLITTER_ROWS  = 110.0; // sparkle cells a picture height
+const vec3  GEL_NOW     = vec3(1.0, 0.239, 0.431);   // the hackathon bench's gels: now …
+const vec3  GEL_PAST    = vec3(0.184, 0.831, 0.769); // … and the past
+const float SMOKE_RISE  = 0.0045; // uv a frame the smoke rises at full press
 // ──────────────────────────────────────────────────────────────────
 
 // ════ shared: signals ══════════════════════════════════════════════════
@@ -156,6 +175,11 @@ vec2 warpUV(vec2 uv, float kick) {
     p += normalize(p + 1e-5) * RIPPLE_AMP * fx_ripple * sin(40.0 * r - TIME * 10.0) * (0.5 + kick);
   }
   vec2 q = p / vec2(aspect, 1.0) + 0.5;
+  if (fx_wave > 0.001) {
+    // wave: each row pushed sideways by the sound wave read down the picture; the kick pushes harder
+    float w = IMG_NORM_PIXEL(wave, vec2(0.1 + 0.8 * q.y, 0.25)).r * 2.0 - 1.0;
+    q.x += w * WAVE_AMP * fx_wave * (0.7 + 0.6 * kick);
+  }
   if (fx_mirror > 0.001) { q.x = mix(q.x, 0.5 - abs(q.x - 0.5), step(0.15, fx_mirror)); }
   if (fx_tile > 0.001) { q = fract(q * floor(1.0 + fx_tile * 3.99)); }
   if (fx_pixel > 0.001) {
@@ -316,6 +340,82 @@ vec3 burn(vec2 uv, vec3 c, float kick) {
   return mix(c, vec3(1.0, 0.95, 0.85), hole * on);
 }
 
+// Contour: brightness as coloured iso-lines climbing with the beat, over a darkened picture.
+vec3 contour(vec2 q, vec3 c, float kick) {
+  vec2 px = 1.5 / max(RENDERSIZE, vec2(1.0));
+  // brightness a little blurred (camera grain would draw its own lines), and its slope
+  float lr = lumaOf(IMG_NORM_PIXEL(inputImage, q + vec2(px.x, 0.0)).rgb);
+  float ll = lumaOf(IMG_NORM_PIXEL(inputImage, q - vec2(px.x, 0.0)).rgb);
+  float lu = lumaOf(IMG_NORM_PIXEL(inputImage, q + vec2(0.0, px.y)).rgb);
+  float ld = lumaOf(IMG_NORM_PIXEL(inputImage, q - vec2(0.0, px.y)).rgb);
+  float l = 0.25 * (lr + ll + lu + ld);
+  float v = l * CONTOUR_N + BEAT * 0.25;
+  float f = fract(v);
+  // a line about two pixels wide wherever it falls: its width in level units follows the slope
+  float w = clamp(length(vec2(lr - ll, lu - ld)) * 0.5 * CONTOUR_N * 1.3, 0.001, 0.45);
+  float line = 1.0 - smoothstep(w * 0.5, w, min(f, 1.0 - f));
+  vec3 col = clamp(hueRotate(vec3(1.0, 0.2, 0.5), fract(floor(v) * 0.13 + floor(BAR) * 0.07)), 0.0, 1.0);
+  vec3 lit = c * 0.2 + col * line * (0.9 + 0.6 * kick);
+  return mix(c, lit, fx_contour);
+}
+
+// Halftone: printed dots on a fixed 45° screen, sized by brightness, swelling on the kick.
+vec3 halftone(vec2 q, vec3 c, float kick) {
+  float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
+  vec2 p = rot(q * vec2(aspect, 1.0) * HALFTONE_ROWS, 0.785398);
+  vec2 id = floor(p) + 0.5;
+  vec2 centre = rot(id, -0.785398) / HALFTONE_ROWS / vec2(aspect, 1.0);
+  vec3 cc = IMG_NORM_PIXEL(inputImage, centre).rgb;
+  float r = sqrt(lumaOf(cc)) * 0.62 * (1.0 + 0.25 * kick);
+  float d = length(p - id);
+  float dotm = 1.0 - smoothstep(r - 0.08, r + 0.02, d);
+  vec3 ink = clamp(cc * 1.35, 0.0, 1.0);
+  vec3 printed = mix(vec3(0.03), ink, dotm);
+  return mix(c, printed, smoothstep(0.0, 0.35, fx_halftone));
+}
+
+// Relief: the picture embossed, lit from a side picked anew on each beat (never turning).
+vec3 relief(vec2 q, vec3 c, float kick) {
+  vec2 px = 2.0 / max(RENDERSIZE, vec2(1.0));
+  float gx = lumaOf(IMG_NORM_PIXEL(inputImage, q + vec2(px.x, 0.0)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, q - vec2(px.x, 0.0)).rgb);
+  float gy = lumaOf(IMG_NORM_PIXEL(inputImage, q + vec2(0.0, px.y)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, q - vec2(0.0, px.y)).rgb);
+  float side = floor(hash(vec2(floor(BEAT), 41.0)) * 3.0);
+  vec2 L = side < 0.5 ? vec2(-0.8, 0.6) : (side < 1.5 ? vec2(0.8, 0.6) : vec2(0.0, 1.0));
+  float k = 5.0 * (1.0 + 0.8 * kick);
+  float shade = clamp(0.55 + dot(vec2(gx, gy), L) * k, 0.0, 1.5);
+  vec3 embossed = c * (0.35 + 0.9 * shade) + vec3(0.25) * pow(max(shade - 0.9, 0.0), 2.0);
+  return mix(c, embossed, fx_relief);
+}
+
+// Glitter: sparkles twinkling along the outlines, yellow when born, magenta as they die.
+vec3 glitter(vec2 q, vec3 c, float kick) {
+  float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
+  vec2 g = q * vec2(aspect, 1.0) * GLITTER_ROWS;
+  vec2 cell = floor(g);
+  vec2 centre = (cell + 0.5) / GLITTER_ROWS / vec2(aspect, 1.0);
+  // the outline, read a cell wide so the sparkles lie in a band along it
+  vec2 px = vec2(1.0 / aspect, 1.0) / GLITTER_ROWS;
+  float lx = lumaOf(IMG_NORM_PIXEL(inputImage, centre + vec2(px.x, 0.0)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, centre - vec2(px.x, 0.0)).rgb);
+  float ly = lumaOf(IMG_NORM_PIXEL(inputImage, centre + vec2(0.0, px.y)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, centre - vec2(0.0, px.y)).rgb);
+  float e = smoothstep(0.06, 0.2, length(vec2(lx, ly)));
+  float hats = sigB().b;
+  float t = floor(TIME * (10.0 + 10.0 * hats));
+  float born = hash(cell + 0.173 * t);
+  float on = e * step(born, fx_glitter * (0.55 + 0.3 * kick + 0.3 * hats));
+  float d = length(fract(g) - 0.5);
+  float dotm = 1.0 - smoothstep(0.25, 0.45 + 0.05 * kick, d);
+  vec3 col = mix(vec3(1.0, 0.15, 0.9), vec3(1.0, 0.95, 0.1), hash(cell + t * 0.37));
+  return mix(c, col, on * dotm);
+}
+
+// Gels: now in magenta, the lagged past in teal, summed as light (the hackathon bench).
+vec3 gels(vec2 q, vec3 c, float kick) {
+  vec3 past = IMG_NORM_PIXEL(lag, q).rgb;
+  vec3 sum = c * GEL_NOW * lumaOf(c) + past * GEL_PAST * lumaOf(past);
+  vec3 lit = 1.0 - exp(-sum * (2.2 + 0.8 * kick));
+  return mix(c, lit, fx_gels);
+}
+
 vec3 grade(vec3 c, float kick) {
   if (fx_hue > 0.001) { c = clamp(hueRotate(c, fx_hue + 0.1 * kick * fx_hue), 0.0, 1.0); }
   if (fx_posterize > 0.001) {
@@ -345,11 +445,26 @@ void main() {
   }
 
   if (PASSINDEX == 2.0) {
+    // lag: the incoming picture followed slowly (alpha keeps fract(TIME) for the frame time); the mids slow it
+    vec4 prev = IMG_NORM_PIXEL(lag, uv);
+    float dt = clamp(fract(fract(TIME) - prev.a + 1.0), 1.0 / 240.0, 0.1);
+    float tau = 0.12 + 0.6 * sigB().g;
+    float k = max(1.0 - exp(-dt / tau), 1.0 - step(1.0, FRAMEINDEX));
+    gl_FragColor = vec4(mix(prev.rgb, IMG_NORM_PIXEL(inputImage, uv).rgb, k), fract(TIME));
+    return;
+  }
+
+  if (PASSINDEX == 3.0) {
     vec2 q = warpUV(uv, kick);
     vec3 c = readAt(q);
     if (fx_lift > 0.001) { c = lift(q, c, kick); }
     if (fx_bloom > 0.001) { c = bloom(q, c, kick); }
     if (fx_edges > 0.001) { c = edges(q, c, kick); }
+    if (fx_relief > 0.001) { c = relief(q, c, kick); }
+    if (fx_contour > 0.001) { c = contour(q, c, kick); }
+    if (fx_halftone > 0.001) { c = halftone(q, c, kick); }
+    if (fx_gels > 0.001) { c = gels(q, c, kick); }
+    if (fx_glitter > 0.001) { c = glitter(q, c, kick); }
     c = grade(c, kick);
     // feedback: trails keep the brighter past, the tunnel pulls it inward and turns it
     if (fx_trails > 0.001) {
@@ -375,9 +490,16 @@ void main() {
     if (fx_slit > 0.001) {
       // slit-scan: right of the slit the last frame streams away sideways, so the slit's column smears out;
       // the slit jumps every bar, the lows speed the stream
-      float sx = 0.15 + 0.6 * hash(vec2(floor(BAR), 31.0));
-      vec3 prev = IMG_NORM_PIXEL(fb, uv - vec2(SLIT_SPEED * (0.6 + 0.8 * sigB().r), 0.0)).rgb;
-      c = mix(c, prev, smoothstep(sx, sx + 0.01, uv.x) * fx_slit);
+      // horizontal (the default): below the slit the last frame pours downward, so the slit's row runs down the picture
+      float at = clamp(slit_pos + (hash(vec2(floor(BAR), 31.0)) - 0.5) * 0.6 * slit_jump, 0.05, 0.95);
+      float sp = SLIT_SPEED * (0.6 + 0.8 * sigB().r);
+      if (slit_dir < 0.5) {
+        vec3 prev = IMG_NORM_PIXEL(fb, uv + vec2(0.0, sp * RENDERSIZE.x / max(RENDERSIZE.y, 1.0))).rgb;
+        c = mix(c, prev, (1.0 - smoothstep(at - 0.01, at, uv.y)) * fx_slit);
+      } else {
+        vec3 prev = IMG_NORM_PIXEL(fb, uv - vec2(sp, 0.0)).rgb;
+        c = mix(c, prev, smoothstep(at, at + 0.01, uv.x) * fx_slit);
+      }
     }
     if (fx_colourlag > 0.001) {
       // colour lag: green and blue run behind red, so movement leaves colour trails; a kick snaps them back
@@ -394,6 +516,23 @@ void main() {
       float a = fx_echo * mix(1.0, 0.35, PHASE);
       c = mix(c, max(c, g), a);
       c = mix(c, g, 0.3 * a);
+    }
+    if (fx_rainbow > 0.001) {
+      // rainbow trails: the brighter past kept, its colour turned a little each frame, so what moves leaves a spectrum behind
+      vec3 prev = IMG_NORM_PIXEL(fb, uv).rgb;
+      vec3 turned = clamp(hueRotate(prev, 0.035 + 0.05 * kick), 0.0, 1.0) * mix(0.7, 0.95, fx_rainbow);
+      // only where the past is brighter than now (something moved away), so still things keep their colour
+      float trail = smoothstep(0.01, 0.06, dot(turned - c, vec3(0.3333)));   // the sum: turning a colour keeps it
+      c = mix(c, turned, trail);
+    }
+    if (fx_smoke > 0.001) {
+      // smoke: the brighter past rises and curls, greying as it goes; the mids lift it faster
+      float rise = SMOKE_RISE * (0.6 + 0.9 * sigB().g);
+      vec2 curl = vec2(sin(uv.y * 23.0 + TIME * 1.7) + 0.5 * sin(uv.y * 57.0 - TIME * 2.3), 0.0) * 0.0025;
+      vec3 prev = IMG_NORM_PIXEL(fb, uv - vec2(curl.x, rise)).rgb;
+      float l = lumaOf(prev);
+      vec3 smoke = mix(prev, vec3(l) * vec3(0.95, 0.97, 1.0), 0.35) * mix(0.8, 0.955, fx_smoke);
+      c = max(c, smoke);
     }
     gl_FragColor = vec4(c, 1.0);
     return;
