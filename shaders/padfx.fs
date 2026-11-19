@@ -6,6 +6,8 @@
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "a master over every pad: 1 each pad as pressed, 0 the picture untouched whatever is held" },
+    { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves the pads: 0 holds them still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "fx_zoom", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_liquid", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
     { "NAME": "fx_mirror", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.0 },
@@ -132,7 +134,12 @@ vec4 sigPass() {
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
-float kickNow() { return sigA().r; }
+// react 0.5 is the music as the pads were tuned; 0 holds them still, 1 doubles it.
+float reactK() { return 2.0 * react; }
+float kickNow() { return reactK() * sigA().r; }
+float lowsNow() { return reactK() * sigB().r; }
+float midsNow() { return reactK() * sigB().g; }
+float highsNow() { return reactK() * sigB().b; }
 // ═══════════════════════════════════════════════════════════════════════
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -164,7 +171,7 @@ vec2 warpUV(vec2 uv, float kick) {
     vec2 w = vec2(sin(p.y * 5.0 + TIME * 0.9 + 1.5 * sin(p.x * 3.0 - TIME * 0.6)),
                   sin(p.x * 4.0 - TIME * 0.7 + 1.5 * sin(p.y * 6.0 + TIME * 0.8)));
     w += 0.5 * vec2(sin(p.y * 11.0 - TIME * 1.3 + 2.0 * w.y), sin(p.x * 9.0 + TIME * 1.1 + 2.0 * w.x));
-    p += w * LIQUID_AMP * fx_liquid * (0.6 + 0.8 * sigB().g);
+    p += w * LIQUID_AMP * fx_liquid * (0.6 + 0.8 * midsNow());
   }
   if (fx_twirl > 0.001) {
     float r = length(p);
@@ -195,7 +202,7 @@ vec2 warpUV(vec2 uv, float kick) {
     // patches: random rectangles, at most one per grid cell, re-thrown on every beat and every kick;
     // each pixelates, shoves its contents aside, or stretches its left edge across itself
     float age = kickAge();
-    float kickSeed = step(age, 30.0) * fract(floor((TIME - age) * 4.0) * 0.6180339) * 977.0;
+    float kickSeed = step(age, 30.0) * step(0.001, react) * fract(floor((TIME - age) * 4.0) * 0.6180339) * 977.0;
     float seed = kickSeed + floor(BEAT) * 13.0;
     vec2 off = vec2(hash(vec2(seed, 1.0)), hash(vec2(seed, 2.0)));
     vec2 g = q * PATCH_GRID + off;
@@ -227,7 +234,7 @@ vec2 warpUV(vec2 uv, float kick) {
     float c0 = hash(vec2(floor(cx), 3.0));
     float c1 = hash(vec2(floor(cx) + 1.0, 3.0));
     float len = mix(c0 * c0, c1 * c1, smoothstep(0.0, 1.0, fract(cx)));
-    q.y += DRIP_MAX * fx_drip * len * smoothstep(0.0, 1.0, BAR_PHASE) * (0.6 + 0.6 * sigB().r);
+    q.y += DRIP_MAX * fx_drip * len * smoothstep(0.0, 1.0, BAR_PHASE) * (0.6 + 0.6 * lowsNow());
   }
   if (fx_tear > 0.001) {
     // tear: one band torn sideways; a new place and direction every beat, shoved harder on the kick, rolling inside
@@ -304,7 +311,7 @@ vec3 bloom(vec2 q, vec3 c, float kick) {
     acc.g += max(IMG_NORM_PIXEL(inputImage, q + o).g - 0.55, 0.0);
     acc.b += max(IMG_NORM_PIXEL(inputImage, q + o * 0.8).b - 0.55, 0.0);
   }
-  return c + acc / 10.0 * 3.0 * fx_bloom * (0.6 + 0.8 * sigB().g + 0.4 * kick);
+  return c + acc / 10.0 * 3.0 * fx_bloom * (0.6 + 0.8 * midsNow() + 0.4 * kick);
 }
 
 // Neon edges: the picture's outlines lit in one colour that moves on every beat, over a darkened picture.
@@ -314,7 +321,7 @@ vec3 edges(vec2 q, vec3 c, float kick) {
   float ly = lumaOf(IMG_NORM_PIXEL(inputImage, q + vec2(0.0, px.y)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, q - vec2(0.0, px.y)).rgb);
   float e = clamp(length(vec2(lx, ly)) * 6.0, 0.0, 1.0);
   vec3 neon = clamp(hueRotate(vec3(1.0, 0.15, 0.6), fract(floor(BEAT) * 0.381966)), 0.0, 1.0);
-  vec3 lit = c * 0.25 + neon * e * (1.0 + 0.6 * kick + 0.5 * sigB().b);
+  vec3 lit = c * 0.25 + neon * e * (1.0 + 0.6 * kick + 0.5 * highsNow());
   return mix(c, lit, fx_edges);
 }
 
@@ -330,7 +337,7 @@ vec3 burn(vec2 uv, vec3 c, float kick) {
   vec2 p = uv * vec2(RENDERSIZE.x / max(RENDERSIZE.y, 1.0), 1.0);
   float t = TIME * 0.05;
   float n = 0.6 * vnoise(p * 3.0 + vec2(t, -t)) + 0.3 * vnoise(p * 7.0 - vec2(t * 1.7, 0.0)) + 0.1 * vnoise(p * 17.0);
-  float d = n - (0.55 * fx_burn + 0.05 * fx_burn * sigB().r);
+  float d = n - (0.55 * fx_burn + 0.05 * fx_burn * lowsNow());
   float on = smoothstep(0.0, 0.15, fx_burn);
   float hole = 1.0 - smoothstep(-0.01, 0.0, d);
   float rim = (1.0 - smoothstep(0.0, 0.05, d)) * (1.0 - hole);
@@ -398,7 +405,7 @@ vec3 glitter(vec2 q, vec3 c, float kick) {
   float lx = lumaOf(IMG_NORM_PIXEL(inputImage, centre + vec2(px.x, 0.0)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, centre - vec2(px.x, 0.0)).rgb);
   float ly = lumaOf(IMG_NORM_PIXEL(inputImage, centre + vec2(0.0, px.y)).rgb) - lumaOf(IMG_NORM_PIXEL(inputImage, centre - vec2(0.0, px.y)).rgb);
   float e = smoothstep(0.06, 0.2, length(vec2(lx, ly)));
-  float hats = sigB().b;
+  float hats = highsNow();
   float t = floor(TIME * (10.0 + 10.0 * hats));
   float born = hash(cell + 0.173 * t);
   float on = e * step(born, fx_glitter * (0.55 + 0.3 * kick + 0.3 * hats));
@@ -448,7 +455,7 @@ void main() {
     // lag: the incoming picture followed slowly (alpha keeps fract(TIME) for the frame time); the mids slow it
     vec4 prev = IMG_NORM_PIXEL(lag, uv);
     float dt = clamp(fract(fract(TIME) - prev.a + 1.0), 1.0 / 240.0, 0.1);
-    float tau = 0.12 + 0.6 * sigB().g;
+    float tau = 0.12 + 0.6 * midsNow();
     float k = max(1.0 - exp(-dt / tau), 1.0 - step(1.0, FRAMEINDEX));
     gl_FragColor = vec4(mix(prev.rgb, IMG_NORM_PIXEL(inputImage, uv).rgb, k), fract(TIME));
     return;
@@ -492,7 +499,7 @@ void main() {
       // the slit jumps every bar, the lows speed the stream
       // horizontal (the default): below the slit the last frame pours downward, so the slit's row runs down the picture
       float at = clamp(slit_pos + (hash(vec2(floor(BAR), 31.0)) - 0.5) * 0.6 * slit_jump, 0.05, 0.95);
-      float sp = SLIT_SPEED * (0.6 + 0.8 * sigB().r);
+      float sp = SLIT_SPEED * (0.6 + 0.8 * lowsNow());
       if (slit_dir < 0.5) {
         vec3 prev = IMG_NORM_PIXEL(fb, uv + vec2(0.0, sp * RENDERSIZE.x / max(RENDERSIZE.y, 1.0))).rgb;
         c = mix(c, prev, (1.0 - smoothstep(at - 0.01, at, uv.y)) * fx_slit);
@@ -527,7 +534,7 @@ void main() {
     }
     if (fx_smoke > 0.001) {
       // smoke: the brighter past rises and curls, greying as it goes; the mids lift it faster
-      float rise = SMOKE_RISE * (0.6 + 0.9 * sigB().g);
+      float rise = SMOKE_RISE * (0.6 + 0.9 * midsNow());
       vec2 curl = vec2(sin(uv.y * 23.0 + TIME * 1.7) + 0.5 * sin(uv.y * 57.0 - TIME * 2.3), 0.0) * 0.0025;
       vec3 prev = IMG_NORM_PIXEL(fb, uv - vec2(curl.x, rise)).rgb;
       float l = lumaOf(prev);
@@ -546,10 +553,10 @@ void main() {
   }
   if (fx_burn > 0.001) { c = burn(uv, c, kick); }
   if (fx_leak > 0.001) {
-    vec3 l = clamp(leak(uv, kick, sigB().b) * fx_leak * 1.4, 0.0, 1.0);
+    vec3 l = clamp(leak(uv, kick, highsNow()) * fx_leak * 1.4, 0.0, 1.0);
     c = 1.0 - (1.0 - c) * (1.0 - l);
     c += vec3(0.04, 0.015, 0.0) * fx_leak;
   }
   if (fx_blackout > 0.001) { c *= 1.0 - fx_blackout; }
-  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(mix(IMG_NORM_PIXEL(inputImage, uv).rgb, clamp(c, 0.0, 1.0), amount), 1.0);
 }

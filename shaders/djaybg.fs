@@ -1,16 +1,18 @@
 /*{
   "DESCRIPTION": "djaybg: you in front, djay Pro behind. The ML depth map cuts the figure (near) out of the camera and lays it over djay's picture; brightness depth stands in until the model is ready.",
+  "CREDIT": "Chris Poucet, simply-jam",
   "CATEGORIES": ["figure", "two-pictures", "depth", "sound"],
   "INPUTS": [
     { "NAME": "cam", "TYPE": "image" },
     { "NAME": "plate", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how much of djay's picture behind you (0: the camera untouched)" },
+    { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.8, "DESCRIPTION": "how much the bass pulses the rim and djay's picture" },
     { "NAME": "cut", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.55 },
     { "NAME": "soft", "TYPE": "float", "MIN": 0.01, "MAX": 0.4, "DEFAULT": 0.08 },
     { "NAME": "plateLevel", "TYPE": "float", "MIN": 0.0, "MAX": 1.5, "DEFAULT": 1.0 },
-    { "NAME": "rim", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5 },
-    { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.8 }
+    { "NAME": "rim", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5 }
   ]
 }*/
 
@@ -24,16 +26,14 @@ float bass() {
   return clamp(s / 6.0 * 5.0, 0.0, 1.0);
 }
 
-// Nearness 0..1 at uv: the ML map when it has one (its nearest point is 1),
-// else blurred brightness.
+// Nearness 0..1 at uv: the ML map while tussen has one bound (DEPTH_READY;
+// its nearest point is 1), else blurred brightness.
 float nearAt(vec2 uv) {
   float d = IMG_NORM_PIXEL(depth, uv).r;
-  float ready = step(0.5, max(max(IMG_NORM_PIXEL(depth, vec2(0.25, 0.5)).r, IMG_NORM_PIXEL(depth, vec2(0.5, 0.5)).r),
-                              max(IMG_NORM_PIXEL(depth, vec2(0.75, 0.5)).r, IMG_NORM_PIXEL(depth, vec2(0.5, 0.25)).r)));
   vec2 px = 3.0 / RENDERSIZE;
   float l = (luma(IMG_NORM_PIXEL(cam, uv).rgb) + luma(IMG_NORM_PIXEL(cam, uv + vec2(px.x, 0.0)).rgb)
            + luma(IMG_NORM_PIXEL(cam, uv - vec2(px.x, 0.0)).rgb) + luma(IMG_NORM_PIXEL(cam, uv + vec2(0.0, px.y)).rgb)) * 0.25;
-  return mix(l, d, ready);
+  return mix(l, d, DEPTH_READY);
 }
 
 void main() {
@@ -53,5 +53,5 @@ void main() {
 
   vec3 back = bg * plateLevel * (0.85 + 0.3 * b);
   vec3 col = mix(back, me, figure) + vec3(0.6, 0.85, 1.0) * glow;
-  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(clamp(mix(me, col, amount), 0.0, 1.0), 1.0);
 }

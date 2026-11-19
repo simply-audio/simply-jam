@@ -1,9 +1,12 @@
 /*{
-  "DESCRIPTION": "hearts: floating hearts over the picture that pump with the bass, glow with the highs and flash on the beat; fx_* are performance effects (0 = off, held pad = on)",
+  "DESCRIPTION": "hearts: floating hearts over the picture that pump with the bass, glow with the highs and flash on the beat while music plays; fx_* are performance effects (0 = off, held pad = on)",
+  "CREDIT": "Chris Poucet, simply-jam",
   "CATEGORIES": ["overlay", "sound", "beat", "pressure"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how strong the look is (0: the picture untouched)" },
+    { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "gain", "TYPE": "float", "MIN": 1.0, "MAX": 16.0, "DEFAULT": 5.0 },
     { "NAME": "density", "TYPE": "float", "MIN": 3.0, "MAX": 14.0, "DEFAULT": 7.0 },
     { "NAME": "mixAmount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.85 },
@@ -65,10 +68,14 @@ void main() {
   vec2 uv0 = isf_FragNormCoord;
   float aspect = RENDERSIZE.x / RENDERSIZE.y;
 
+  // react 0.5 is the music as tuned; 0 holds it still, 1 doubles it
+  float rk = 2.0 * react;
   float bass = band(0.0, 0.06);
   float mids = band(0.06, 0.3);
   float highs = band(0.3, 0.9);
-  float flash = exp(-5.0 * PHASE);
+  // the beat's flash only while music plays: in silence the hearts sit still
+  float flash = exp(-5.0 * PHASE) * smoothstep(0.05, 0.2, max(bass, highs)) * rk;
+  bass *= rk; mids *= rk; highs *= rk;
 
   // ── where we read the picture from (space effects) ──
   vec2 uv = uv0;
@@ -168,5 +175,5 @@ void main() {
   // blackout
   outc = mix(outc, vec3(0.0), fx_blackout);
 
-  gl_FragColor = vec4(clamp(outc, 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(mix(IMG_NORM_PIXEL(inputImage, uv0).rgb, clamp(outc, 0.0, 1.0), amount), 1.0);
 }

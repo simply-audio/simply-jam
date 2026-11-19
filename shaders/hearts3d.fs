@@ -1,10 +1,13 @@
 /*{
-  "DESCRIPTION": "hearts3d: three passes around a depth buffer. 1: the picture's depth (the ML depth map when tussen has one, else blurred brightness; depthFallback blends to brightness). 2: ray-marched 3D hearts, depth-tested against it, colour + z into a float buffer. 3: depth of field from that z.",
+  "DESCRIPTION": "hearts3d: three passes around a depth buffer. 1: the picture's depth (the ML depth map when tussen has one, else blurred brightness; depthFallback blends to brightness). 2: ray-marched 3D hearts, depth-tested against it, colour + z into a float buffer. 3: depth of field from that z. The bass swells the hearts and the beat brightens them while music plays.",
+  "CREDIT": "Chris Poucet, simply-jam",
   "CATEGORIES": ["overlay", "depth", "sound", "beat"],
   "INPUTS": [
     { "NAME": "inputImage", "TYPE": "image" },
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how strong the look is (0: the picture untouched)" },
+    { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "gain", "TYPE": "float", "MIN": 1.0, "MAX": 16.0, "DEFAULT": 5.0 },
     { "NAME": "speed", "TYPE": "float", "MIN": 0.0, "MAX": 3.0, "DEFAULT": 0.8 },
     { "NAME": "spacing", "TYPE": "float", "MIN": 1.2, "MAX": 4.0, "DEFAULT": 2.2 },
@@ -103,29 +106,24 @@ void main() {
     l /= 25.0;
     l = mix(l, 1.0 - l, depthInvert);
     float near = smoothstep(0.1, 0.9, l);
-    // the ML map: 1 = nearest, toward 0 = far (relative per frame). It
-    // reads 0 everywhere with no model: its max over a 3×3 grid says
-    // whether one is there, smoothed over a few frames in .b.
-    float m = 0.0;
-    for (int y = 0; y < 3; y++) {
-      for (int x = 0; x < 3; x++) {
-        m = max(m, IMG_NORM_PIXEL(depth, (vec2(float(x), float(y)) + 0.5) / 3.0).r);
-      }
-    }
-    float ready = IMG_NORM_PIXEL(depthBuf, uv).b * step(1.0, FRAMEINDEX);
-    ready += 0.2 * (step(0.02, m) - ready);
-    near = mix(IMG_NORM_PIXEL(depth, uv).r, near, max(depthFallback, 1.0 - ready));
+    // the ML map (1 = nearest, toward 0 = far, relative per frame) while
+    // tussen has one bound (DEPTH_READY); else the brightness above.
+    near = mix(IMG_NORM_PIXEL(depth, uv).r, near, max(depthFallback, 1.0 - DEPTH_READY));
     float z = camNear + (1.0 - near) * camDepth;
-    gl_FragColor = vec4(z, l, ready, 1.0);
+    gl_FragColor = vec4(z, l, 0.0, 1.0);
     return;
   }
 
   if (PASSINDEX == 1.0) {
     // ── pass 2: ray-march the hearts, depth-test against the picture ──
     float aspect = RENDERSIZE.x / RENDERSIZE.y;
+    // react 0.5 is the music as tuned; 0 holds it still, 1 doubles it
+    float rk = 2.0 * react;
     float bass = band(0.0, 0.06);
     float highs = band(0.3, 0.9);
-    float flash = exp(-5.0 * PHASE);
+    // the beat's flash only while music plays: in silence the hearts sit still
+    float flash = exp(-5.0 * PHASE) * smoothstep(0.05, 0.2, max(bass, highs)) * rk;
+    bass *= rk; highs *= rk;
     vec3 cam = IMG_NORM_PIXEL(inputImage, uv).rgb;
     float camZ = IMG_NORM_PIXEL(depthBuf, uv).r;
 
@@ -188,7 +186,7 @@ void main() {
     acc += s.rgb * w;
     wsum += w;
   }
-  vec3 col = acc / wsum;
+  vec3 col = mix(IMG_NORM_PIXEL(inputImage, uv).rgb, acc / wsum, amount);
 
   // The depth buffer itself, for checking: near white, far black.
   vec3 dv = vec3(1.0 - clamp((c0.a - camNear) / (camDepth + 1.0), 0.0, 1.0));
