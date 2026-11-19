@@ -39,5 +39,6 @@ Call `get_state` and tell them, in a line, what tussen has: its inputs, its outp
 ## When something's wrong
 
 - **Nothing answers on 9097:** tussen isn't running, MCP is off, or another program holds the port (Settings shows the port).
+- **Nothing is tapped, no picture:** a fresh tussen taps nothing and plays on the system default output. Ask the person to press **Start jamming** in Settings › Setup: it adds `music` (`all-except:this`, muted), the first camera and the `stage` output, and plays the `starter` vibe. macOS then asks them to allow system audio (and the camera): tell them to press **Allow**.
 - **The tools appear but calls fail:** the hub is restarting; wait a moment and try `get_state` again.
 - **They want help from people:** the simply.audio Discord, https://discord.gg/bAEAFkDQFX.
