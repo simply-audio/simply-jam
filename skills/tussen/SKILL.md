@@ -59,8 +59,9 @@ Say what you're doing in plain words.
    any code means yes. If not, ask them to open Simply Tussen from Applications
    themselves (no tussen yet: they click **Download** on https://simply.audio/tussen
    and drag it into Applications), then wait, checking every few seconds.
-   **Never download, install or open tussen yourself, never fetch a `.dmg` or
-   `/tussen/get`, never set `TUSSEN_REAL_IO`, and never start a hub of your own.**
+   **Never download, install or open tussen yourself (the person clicks the
+   download; an agent's fetch would count as one), never set `TUSSEN_REAL_IO`,
+   and never start a hub of your own.**
 2. **Until your harness lists tussen's MCP tools** (from the next session), use
    `ctl` (below). Ask the person once to let you run it without asking each time.
 3. **Say hello**: `get_state`, one line on what plays and what they see.
