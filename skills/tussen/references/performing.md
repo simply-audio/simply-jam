@@ -23,10 +23,10 @@ its plane. The rules and the ways to reach the hub are in
 
 ## Talking to the hub
 
-From the repo's default workspace:
+MCP first; `ctl` through the app is the same plane:
 
 ```sh
-B=target/release/simply-tussen          # or: cargo xtask hub ctl …
+B="/Applications/Simply Tussen.app/Contents/MacOS/SimplyTussen"
 $B ctl methods                           # every method, one line each
 $B ctl get_state                         # inputs, mixes, outputs, layers
 $B ctl <method> '<json>' </dev/null      # always </dev/null: nothing may wait for input
@@ -83,14 +83,20 @@ shader is too heavy.
 The GLSL goes through naga, which is stricter than a browser. In
 practice:
 
-- No mutable global variables (write a parameter into a function instead),
-  no `out` parameters, no `bool` inputs (use a `float` 0..1 and `mix` or
-  `step`). One of these made a shader fail with only
-  `Function 'main' is invalid`, so stay inside this subset.
-- `for` loops with constant bounds, `break` and an early `return` from
-  `main` are fine.
+- Every parameter is a `float` in the shader, `bool`, `long` and `event`
+  included: `if (on)` and `switch (mode)` fail with only
+  `Function 'main' is invalid`; write `on > 0.5`, `switch (int(mode))`.
+  Parameters are read-only: assigning to one fails the same way.
+- No `texture2D` (use `IMG_NORM_PIXEL`), no `uniform` or `sampler2D` of your
+  own (declare textures in the header), no recursion.
+- Mutable globals, `out` parameters, structs, `switch` on an `int`, loops
+  with computed bounds, `break` and an early `return` are fine.
+- The header must be the file's first thing: a comment above it means no
+  parameters.
 - A naga error points at a line, often `main`'s first line. Bisect by
   simplifying rather than trusting the line.
+- Writing a shader from scratch, or for simply-jam: the `tussen-shaders`
+  skill (https://github.com/simply-audio/simply-jam/tree/main/skills/tussen-shaders).
 
 ### Sound into a shader
 
@@ -101,7 +107,13 @@ practice:
 - Raw bins are small. Average a band and multiply by a `gain` parameter
   (about 5), then clamp.
 - The beat: `PHASE` (0..1 within the beat; `exp(-5.0 * PHASE)` is a flash
-  on every beat), `BEAT`, `BAR`, `BAR_PHASE`, `TEMPO`, `TIME`.
+  on every beat), `BEAT`, `BAR`, `BAR_PHASE`, `TEMPO`, `TIME`. The beat
+  clock runs in silence too: gate a beat flash on the sound's level, or it
+  flashes with no music.
+- The standard shaders' music block (copy it from any of them, word for
+  word) hears the music once a frame in a 2 × 1 pass: `bass()`, `mids()`,
+  `highs()`, `hit()` (the kick), `level()`, `pulse()` (the kick, or the
+  beat while music plays).
 
 ### Multiple passes and depth
 
@@ -111,11 +123,13 @@ needs, and `PERSISTENT: true` keeps a buffer from frame to frame (trails,
 feedback). Branch on `PASSINDEX`. A pass can run at a lower resolution
 (`"WIDTH": "$WIDTH / 2"`).
 
-A camera gives no depth. Until there is an ML depth input, estimate it
-(blurred brightness: bright = near) in a half-size pass, ray-march 3D
-shapes in the next pass and depth-test them against it, writing colour and
-z (`vec4(rgb, z)`) into a float buffer. Then do depth of field or fog from
-that z in the last pass.
+A `{"NAME":"depth","TYPE":"depth"}` input is the ML depth map (1 nearest).
+Without the model it reads 0 and `DEPTH_READY` is 0: fall back to an
+estimate (blurred brightness: bright = near) made in a small pass, as the
+standard shaders' depth block does. For 3D shapes over the picture,
+ray-march them in the next pass and depth-test them against it, writing
+colour and z (`vec4(rgb, z)`) into a float buffer, then do depth of field
+or fog from that z in the last pass.
 
 ## Controllers to effects
 
@@ -162,6 +176,6 @@ $B ctl set_controller_mapping '{"controller":"launchpad-x","rows":[{"control":"p
 - A depth shader declares `{"NAME":"depth","TYPE":"depth"}` and reads it inside `#ifdef TUSSEN_DEPTH`, blending to a luma fallback by `1 - DEPTH_READY`.
 - `gl_FragCoord` runs y-down in tussen (unlike `isf_FragNormCoord`, which runs y-up): for a pixel grid mapped back to uv, use `isf_FragNormCoord * RENDERSIZE`, or the picture flips.
 - Pass buffers are 16-bit floats: never store absolute TIME in one (it loses precision after a minute); store `fract(TIME)` and ages.
-- With a `depth` input a shader has 5 buffers left (8 extra textures minus images, audio, depth).
+- A shader has 8 textures past its first image: each pass buffer, audio input, the depth input and each other image counts one.
 - Live pressure pads: map BOTH `pad/<r>/<c>` (velocity on the hit) and `pad/<r>/<c>/pressure` to the same `video/<mix>/<look>/<param>` with response `jump`, and set the param's source to `controller`. The hit sets the amount at once, and pressure moves it while held. A scene param on `{osc = …/pressure}` lights no pad and ignores velocity.
 - Swaps: `/now` is live, `/beat` and `/bar` wait for the line.
