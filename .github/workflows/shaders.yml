@@ -1,0 +1,41 @@
+# Every pull request's shaders, checked as tussen compiles them and against
+# the house rules in skills/tussen-shaders/ (.github/scripts/check-shaders.sh).
+#
+# tussen is private, so CI can't build it: it downloads tussen-shader-check,
+# a prebuilt binary from this repository's releases, pinned by version and
+# sha256. A new checker (built with `cargo xtask shader-check-dist` in tussen)
+# means a new release and the two pins below.
+name: shaders
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CHECKER_VERSION: "1.0.0"
+  CHECKER_TARGET: x86_64-unknown-linux-musl
+  CHECKER_SHA256: bc2995d241bb3cbcda438fa2ef84f943b1178f4985639c7cdf4c89308bc520d6
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get tussen-shader-check
+        run: |
+          name="tussen-shader-check-${CHECKER_VERSION}-${CHECKER_TARGET}.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$name" "https://github.com/simply-audio/simply-jam/releases/download/shader-check-v${CHECKER_VERSION}/$name"
+          echo "${CHECKER_SHA256}  $RUNNER_TEMP/$name" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$name" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/tussen-shader-check" --version
+
+      - name: Check the shaders
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/check-shaders.sh "$RUNNER_TEMP/tussen-shader-check" "$BASE" "$HEAD"

@@ -27,6 +27,7 @@ With tussen open on your Mac and your agent connected to it (the skill says how)
 - **MIT**, like the rest of the repo. Your own work, or work whose licence allows MIT (Shadertoy's default licence doesn't).
 - **A credit line** in the header: `"CREDIT": "Your Name"`, and anyone whose work it builds on.
 - **In the description**: what it looks like, what it reacts to, how you tested it, and its `time.ms`. A screenshot or a short clip helps.
+- **A check runs on it**: the `shaders` workflow compiles every shader exactly as tussen does (no tussen or GPU needed) and holds yours to the house rules: `DESCRIPTION`, `CREDIT` and `CATEGORIES` in the header, `amount` and `react` first, nothing in `ignored`, `DEPTH_READY` read if it has a `depth` input, no `IMPORTED` images. Each problem shows on your diff at its line. A shader that doesn't compile, a broken rule in yours, or more than one shader changed fails it; the older shaders' broken rules only warn.
 
 ## How it reaches players
 
