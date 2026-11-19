@@ -13,7 +13,7 @@ its plane. The rules and the ways to reach the hub are in
   change, say so and keep the show going with what exists.
 - **Never break the picture.** A shader file that doesn't compile keeps the
   last good version running, so a save is safe. Still, check after every
-  save (below), and add new work as a new shader or bypassed, not by
+  save (below), and add new work as a new shader resting at amount 0, not by
   gutting the one on screen.
 - **Every plane edit is undoable** (`undo`) and saved with the vibe (the look) or the routing (the sound).
 - **Ask before anything that pops up on someone's screen**: a fullscreen
