@@ -37,7 +37,10 @@ A simply-jam shader:
      `set_shader_amount`), that one fades the whole look in and out and skips it
      at 0; the shader's `amount` is then its strength, so for a look that is
      more than a colour change (a distortion's depth, a glitch's tear), scale
-     the effect with it, not only the mix.
+     the effect with it, not only the mix. At amount 0 tussen skips the
+     shader entirely, so 0 must be the picture passing through untouched,
+     the music included: nothing may still flash or move there (a pad
+     effect, a mode that ignores `amount`, a pulse on the beat).
    - `react` (default 0.5): how much the music moves it. Multiply every
      music-driven part by it, so 0 holds the look still and a pad on `react`
      brings the music in and out.
@@ -102,7 +105,8 @@ Each comes from tussen's code, and the compile ones were tried through its own c
   ages, as the music block does.
 - **A kept buffer starts empty**: when the shader loads, when the picture
   changes size, and (on a tussen with look amounts) when the look comes back
-  after more than a second at 0. Treat an all-zero buffer as the first frame,
+  after more than a second at 0 (the look's amount or the shader's own
+  `amount`, both skip it). Treat an all-zero buffer as the first frame,
   as the music block's `seen` flag does.
 - **Eight extra textures at most**: every pass buffer (once), imported image,
   `audio` or `audioFFT` input, the `depth` input and every image after the

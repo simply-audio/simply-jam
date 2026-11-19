@@ -99,6 +99,9 @@ float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 0 is the picture as it came in (tussen skips the shader there); from
+// 0.1 up the look is all there, its own amount meaning unchanged.
+float wet() { return clamp(amount * 10.0, 0.0, 1.0); }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float lowsNow() { return reactK() * sigB().r; }
 float midsNow() { return reactK() * sigB().g; }
@@ -447,7 +450,7 @@ void main() {
   vec3 col = cam;
 
   if (md < 0.5) {
-    gl_FragColor = vec4(mosaic(uv, cam, amt, k, S, w), 1.0);
+    gl_FragColor = vec4(mix(cam, mosaic(uv, cam, amt, k, S, w), wet()), 1.0);
     return;
   } else if (md < 1.5) {                           // FX 20 halftone
     float cell = mix(HT_CELL_MIN, HT_CELL_MAX, amount) * S;
@@ -472,7 +475,7 @@ void main() {
     float a = clamp(smoothstep(0.0, 0.06, amount) + kickAmt * k + midsAmt * m, 0.0, 1.0);
     col = glyphs(uv, cam, a, k, m, S);
   } else if (md < 4.5) {
-    gl_FragColor = vec4(matrixRain(uv, cam, amt, k, m), 1.0);
+    gl_FragColor = vec4(mix(cam, matrixRain(uv, cam, amt, k, m), wet()), 1.0);
     return;
   } else if (md < 5.5) {
     col = dither(uv, cam, clamp(amt + highsAmt * hi, 0.0, 1.0), k, hi, S);
@@ -483,5 +486,5 @@ void main() {
   } else {
     col = pointillism(uv, cam, clamp(amt + highsAmt * hi, 0.0, 1.0), hi, S);
   }
-  gl_FragColor = vec4(mix(cam, col, regionAt(uv)), 1.0);
+  gl_FragColor = vec4(mix(cam, col, regionAt(uv) * wet()), 1.0);
 }

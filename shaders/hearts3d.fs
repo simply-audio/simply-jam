@@ -186,10 +186,10 @@ void main() {
     acc += s.rgb * w;
     wsum += w;
   }
-  vec3 col = mix(IMG_NORM_PIXEL(inputImage, uv).rgb, acc / wsum, amount);
+  vec3 col = acc / wsum;
 
   // The depth buffer itself, for checking: near white, far black.
   vec3 dv = vec3(1.0 - clamp((c0.a - camNear) / (camDepth + 1.0), 0.0, 1.0));
   col = mix(col, dv, showDepth);
-  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(mix(IMG_NORM_PIXEL(inputImage, uv).rgb, clamp(col, 0.0, 1.0), amount), 1.0);
 }

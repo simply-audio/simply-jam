@@ -113,6 +113,9 @@ float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 0 is the picture as it came in (tussen skips the shader there); from
+// 0.1 up the look is all there, its own amount meaning unchanged.
+float wet() { return clamp(amount * 10.0, 0.0, 1.0); }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float lowsNow() { return reactK() * sigB().r; }
 float midsNow() { return reactK() * sigB().g; }
@@ -763,5 +766,5 @@ void main() {
   else if (m == 14) c = lookShadowInk(uv, cam);
   else if (m == 15) c = lookLightComp(uv, cam, E.x);
   else c = lookWrap(uv, cam, E);
-  gl_FragColor = vec4(c, 1.0);
+  gl_FragColor = vec4(mix(cam, c, wet()), 1.0);
 }

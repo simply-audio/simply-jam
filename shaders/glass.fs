@@ -83,6 +83,9 @@ float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 0 is the picture as it came in (tussen skips the shader there); from
+// 0.1 up the look is all there, its own amount meaning unchanged.
+float wet() { return clamp(amount * 10.0, 0.0, 1.0); }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float midsNow() { return reactK() * sigB().g; }
 
@@ -269,5 +272,5 @@ void main() {
     vec3 fog = frosted(uv, 3.0 + 16.0 * mi) * (1.0 - 0.25 * mi) + vec3(0.13, 0.14, 0.16) * mi + grain * mi;
     outc = mix(c, fog, mi);
   }
-  gl_FragColor = vec4(clamp(outc, 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(clamp(mix(c, outc, wet()), 0.0, 1.0), 1.0);
 }
