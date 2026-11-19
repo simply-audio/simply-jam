@@ -7,8 +7,9 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
-    { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 2, "DEFAULT": 0, "VALUES": [0, 1, 2], "LABELS": ["cross-stitch", "weave", "knit"] },
     { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "pressure: how far the thread takes over from the camera" },
+    { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
+    { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 2, "DEFAULT": 0, "VALUES": [0, 1, 2], "LABELS": ["cross-stitch", "weave", "knit"] },
     { "NAME": "scale", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.55, "DESCRIPTION": "how big the stitches are" },
     { "NAME": "fineFigure", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.6, "DESCRIPTION": "how much finer the stitches are on the figure (0: the same everywhere)" },
     { "NAME": "cloth", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.15, "DESCRIPTION": "the cloth showing through: 0 black, 1 cream" },
@@ -24,7 +25,7 @@
     { "NAME": "depthSmooth", "TYPE": "float", "MIN": 0.0, "MAX": 0.95, "DEFAULT": 0.5 }
   ],
   "PASSES": [
-    { "TARGET": "sig", "WIDTH": "3", "HEIGHT": "1", "FLOAT": true, "PERSISTENT": true },
+    { "TARGET": "sig", "WIDTH": "2", "HEIGHT": "1", "FLOAT": true, "PERSISTENT": true },
     { "TARGET": "depthBuf", "WIDTH": "$WIDTH / 4", "HEIGHT": "$HEIGHT / 4", "FLOAT": true, "PERSISTENT": true },
     {}
   ]
@@ -36,25 +37,10 @@
 // resolution.
 
 // ════ shared: signals ══════════════════════════════════════════════════
-// ML depth present? A map's nearest point reads 1; with no model (not
-// fetched, failed, not a Mac) the map reads 0 everywhere. The max over a
-// 3×3 grid, smoothed over a few frames (sig pixel 2: r presence · g raw max),
-// so one bad frame never flips it. depthReady() is the one place to read it.
-vec4 depthReadyPass(float dt) {
-  float m = 0.0;
-  for (int y = 0; y < 3; y++) {
-    for (int x = 0; x < 3; x++) {
-      m = max(m, IMG_NORM_PIXEL(depth, (vec2(float(x), float(y)) + 0.5) / 3.0).r);
-    }
-  }
-  float prev = IMG_NORM_PIXEL(sig, vec2(2.5 / 3.0, 0.5)).r * step(1.0, FRAMEINDEX);
-  return vec4(prev + (1.0 - exp(-dt / 0.15)) * (step(0.02, m) - prev), m, 0.0, 1.0);
-}
 vec4 sigPass() {
-  vec4 p0 = IMG_NORM_PIXEL(sig, vec2(0.5 / 3.0, 0.5));
-  vec4 p1 = IMG_NORM_PIXEL(sig, vec2(1.5 / 3.0, 0.5));
+  vec4 p0 = IMG_NORM_PIXEL(sig, vec2(0.25, 0.5));
+  vec4 p1 = IMG_NORM_PIXEL(sig, vec2(0.75, 0.5));
   float dt = mix(clamp(fract(fract(TIME) - p0.b + 1.0), 1.0 / 240.0, 0.1), 1.0 / 60.0, 1.0 - step(1.0, FRAMEINDEX));
-  if (isf_FragNormCoord.x > 2.0 / 3.0) { return depthReadyPass(dt); }
   float kL = 1.0 - exp(-6.2832 * 150.0 / 24000.0);   // every other sample: 24 kHz
   float kH = 1.0 - exp(-6.2832 * 600.0 / 24000.0);
   float l1 = 0.0; float l2 = 0.0; float h1 = 0.0; float h2 = 0.0;
@@ -73,7 +59,7 @@ vec4 sigPass() {
   }
   hi = clamp(hi / 16.0 * 40.0 * gain, 0.0, 1.0);
 
-  if (isf_FragNormCoord.x < 1.0 / 3.0) {
+  if (isf_FragNormCoord.x < 0.5) {
     float env = p0.g; float kick = p0.r; float age = mix(60.0, min(p0.a + dt, 60.0), step(1.0, FRAMEINDEX));
     if (bass > 1.35 * env + 0.012 && age > 0.09) {
       kick = 1.0; env = bass; age = 0.0;
@@ -89,12 +75,14 @@ vec4 sigPass() {
   float a = 1.0 - exp(-dt / 0.08);
   return vec4(mix(p1.r, lows, a), mix(p1.g, swell, 1.0 - exp(-dt / 0.15)), max(hi, p1.b * exp(-dt / 0.1)), avg);
 }
-vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.5 / 3.0, 0.5)); }
-vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(1.5 / 3.0, 0.5)); }
+vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
+vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
-float depthReady() { return IMG_NORM_PIXEL(sig, vec2(2.5 / 3.0, 0.5)).r; }
-float kickNow() { return max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
-float midsNow() { return sigB().g; }
+float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
+// react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
+float reactK() { return 2.0 * react; }
+float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
+float midsNow() { return reactK() * sigB().g; }
 
 // ════ shared: depth ════════════════════════════════════════════════════
 float lumaOf(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
@@ -122,7 +110,7 @@ vec4 depthTimePass(vec2 uv) {
   return vec4(d, mix(clamp(fract(fract(TIME) - prev.b + 1.0), 1.0 / 240.0, 0.1), 1.0 / 60.0, 1.0 - step(1.0, FRAMEINDEX)), fract(TIME), 1.0);
 }
 float dtNow() { return IMG_NORM_PIXEL(depthBuf, vec2(0.5)).g; }
-float highsNow() { return sigB().b; }
+float highsNow() { return reactK() * sigB().b; }
 vec3 cam(vec2 uv) { return IMG_NORM_PIXEL(inputImage, clamp(uv, 0.0, 1.0)).rgb; }
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float hash1(float x) { return fract(sin(x * 91.3458) * 47453.5453); }

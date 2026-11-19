@@ -7,10 +7,11 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "pressure: how far back / how much past, per mode" },
+    { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 24, "DEFAULT": 0,
       "VALUES": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],
       "LABELS": ["delay","scratch","reverse","rewind","slow-mo","beat loop","slit","jelly","luma time","depth time","depth bands","time patches","interlace","time RGB","ghosts","beat echoes","zoom ghosts","silhouette stack","outline rings","room echoes","kick throw-back","now/past gate","two clocks","where you were","silhouette swap"] },
-    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "pressure: how far back / how much past, per mode" },
     { "NAME": "where", "TYPE": "long", "MIN": 0, "MAX": 2, "DEFAULT": 0, "DESCRIPTION": "what travels in time: 0 the whole frame · 1 the figure (over the live room) · 2 the room (under the live figure)" },
     { "NAME": "reach", "TYPE": "float", "MIN": 0.5, "MAX": 3.0, "DEFAULT": 1.5, "DESCRIPTION": "seconds of history the 16 slots hold" },
     { "NAME": "slit", "TYPE": "long", "MIN": 0, "MAX": 4, "DEFAULT": 0, "DESCRIPTION": "slit shape (mode 6): 0 rows top-now · 1 rows feet-now · 2 columns centre-now · 3 rings · 4 split" },
@@ -25,7 +26,7 @@
     { "NAME": "depthSmooth", "TYPE": "float", "MIN": 0.0, "MAX": 0.95, "DEFAULT": 0.5 }
   ],
   "PASSES": [
-    { "TARGET": "sig", "WIDTH": "3", "HEIGHT": "1", "FLOAT": true, "PERSISTENT": true },
+    { "TARGET": "sig", "WIDTH": "2", "HEIGHT": "1", "FLOAT": true, "PERSISTENT": true },
     { "TARGET": "depthBuf", "WIDTH": "$WIDTH / 4", "HEIGHT": "$HEIGHT / 4", "FLOAT": true, "PERSISTENT": true },
     { "TARGET": "ring", "WIDTH": "$WIDTH", "HEIGHT": "$HEIGHT * 5 / 4", "FLOAT": true, "PERSISTENT": true },
     {}
@@ -71,31 +72,16 @@
 // state pixels (top row, right end). Reading interpolates between slots, so δt glides.
 
 // ════ shared: signals (copy verbatim) ══════════════════════════════════
-// sig is 3×1 and kept from frame to frame (pixel 2: ML depth presence, see depthReadyPass):
+// sig is 2×1 and kept from frame to frame:
 //   pixel 0: r kick 0..1 (1 on an onset, decays) · g bass envelope · b fract(TIME) · a s since the onset
 // (FLOAT buffers are half floats: never store absolute TIME, only fract(TIME) and ages)
 //   pixel 1: r lows 0..1 · g mids 0..1 · b highs 0..1 · a mids slow average
 // The kick is Chris's waveform-domain detector: 150 Hz low-pass RMS over
 // the 512-sample program, an onset when it clears 1.35× its own envelope.
-// ML depth present? A map's nearest point reads 1; with no model (not
-// fetched, failed, not a Mac) the map reads 0 everywhere. The max over a
-// 3×3 grid, smoothed over a few frames (sig pixel 2: r presence · g raw max),
-// so one bad frame never flips it. depthReady() is the one place to read it.
-vec4 depthReadyPass(float dt) {
-  float m = 0.0;
-  for (int y = 0; y < 3; y++) {
-    for (int x = 0; x < 3; x++) {
-      m = max(m, IMG_NORM_PIXEL(depth, (vec2(float(x), float(y)) + 0.5) / 3.0).r);
-    }
-  }
-  float prev = IMG_NORM_PIXEL(sig, vec2(2.5 / 3.0, 0.5)).r * step(1.0, FRAMEINDEX);
-  return vec4(prev + (1.0 - exp(-dt / 0.15)) * (step(0.02, m) - prev), m, 0.0, 1.0);
-}
 vec4 sigPass() {
-  vec4 p0 = IMG_NORM_PIXEL(sig, vec2(0.5 / 3.0, 0.5));
-  vec4 p1 = IMG_NORM_PIXEL(sig, vec2(1.5 / 3.0, 0.5));
+  vec4 p0 = IMG_NORM_PIXEL(sig, vec2(0.25, 0.5));
+  vec4 p1 = IMG_NORM_PIXEL(sig, vec2(0.75, 0.5));
   float dt = mix(clamp(fract(fract(TIME) - p0.b + 1.0), 1.0 / 240.0, 0.1), 1.0 / 60.0, 1.0 - step(1.0, FRAMEINDEX));
-  if (isf_FragNormCoord.x > 2.0 / 3.0) { return depthReadyPass(dt); }
   float kL = 1.0 - exp(-6.2832 * 150.0 / 24000.0);   // every other sample: 24 kHz
   float kH = 1.0 - exp(-6.2832 * 600.0 / 24000.0);
   float l1 = 0.0; float l2 = 0.0; float h1 = 0.0; float h2 = 0.0;
@@ -114,7 +100,7 @@ vec4 sigPass() {
   }
   hi = clamp(hi / 16.0 * 40.0 * gain, 0.0, 1.0);
 
-  if (isf_FragNormCoord.x < 1.0 / 3.0) {
+  if (isf_FragNormCoord.x < 0.5) {
     float env = p0.g; float kick = p0.r; float age = mix(60.0, min(p0.a + dt, 60.0), step(1.0, FRAMEINDEX));
     if (bass > 1.35 * env + 0.012 && age > 0.09) {
       kick = 1.0; env = bass; age = 0.0;
@@ -130,14 +116,16 @@ vec4 sigPass() {
   float a = 1.0 - exp(-dt / 0.08);
   return vec4(mix(p1.r, lows, a), mix(p1.g, swell, 1.0 - exp(-dt / 0.15)), max(hi, p1.b * exp(-dt / 0.1)), avg);
 }
-vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.5 / 3.0, 0.5)); }
-vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(1.5 / 3.0, 0.5)); }
+vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
+vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
-float depthReady() { return IMG_NORM_PIXEL(sig, vec2(2.5 / 3.0, 0.5)).r; }
-float kickNow() { return max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
-float lowsNow() { return sigB().r; }
-float midsNow() { return sigB().g; }
-float highsNow() { return sigB().b; }
+float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
+// react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
+float reactK() { return 2.0 * react; }
+float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
+float lowsNow() { return reactK() * sigB().r; }
+float midsNow() { return reactK() * sigB().g; }
+float highsNow() { return reactK() * sigB().b; }
 
 // ════ shared: depth (copy verbatim; depth shaders only) ════════════════
 // depthBuf.r: 1 = nearest, toward 0 = far. The ML map when tussen has it
