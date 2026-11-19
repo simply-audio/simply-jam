@@ -65,4 +65,4 @@ Shaders I believe in: ISF GLSL files (`.fs`) that tussen runs on a video output'
 
 ## Adding one
 
-One file per shader, with a `DESCRIPTION` in its header saying what it does and what it reacts to, and a row in the table above. Every parameter needs a sensible default, and its sound-reactive parts need an amount, never just on or off. How shaders work in tussen is in the [`tussen` skill's performing reference](../skills/tussen/references/performing.md).
+See [CONTRIBUTING.md](../CONTRIBUTING.md): one file per pull request, its header saying what it does and what it reacts to. The row in the table above is added when it is merged. How to write one that works in tussen is the [`tussen-shaders`](../skills/tussen-shaders/SKILL.md) skill.

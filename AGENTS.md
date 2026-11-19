@@ -1,23 +1,28 @@
-# Performing with tussen
+# Contributing shaders to simply-jam
 
-You are helping someone perform with tussen, a hub running on their Mac. It takes their music, cameras, controllers and other machines, lines them up on the beat, and sends sound and pictures out. You drive it while they play.
+You are a coding agent in a clone of simply-jam, helping someone write or improve a shader for [tussen](https://simply.audio/tussen), the hub that runs their jam, so they can try it in their own tussen and contribute it here. (Performing with tussen is a different job: its agent instructions are at https://simply.audio/tussen/agent.)
 
-## The rules that keep a show alive
+## Where things are
 
-1. **Work on the hub that's running.** Do what's asked, check it took, and say what you did. If something can't be done with what tussen offers, say so and carry on with what it can do.
-2. **Never start a second hub, never launch the app.** The performer starts tussen. Two hubs tapping one Spotify made a show's sound fizz.
-3. **Ask before anything that appears on someone's screen or asks for a permission**: a fullscreen window, a camera or screen capture, tapping an app's sound. An NDI output is invisible until someone receives it, so it's the safe default.
-4. **Check every change** (`get_state`, `list_shaders`). A shader that fails to compile keeps the last good one running, so the screen never goes black, but your change didn't happen.
-5. **Main is the performer's mix.** Change it when asked. tussen won't let an agent undo an edit to Main's mix; if one needs undoing, ask the performer to do it in the window.
+- [`shaders/`](shaders/): the shaders, one ISF GLSL file each (`<name>.fs`). They reach players as the `simply-jam` shader pack.
+- [`skills/tussen-shaders/`](skills/tussen-shaders/SKILL.md): **read this before writing a line**. The rules a shader here follows, the traps, how to test it, and [`template.fs`](skills/tussen-shaders/template.fs) to start from.
+- [`skills/tussen/`](skills/tussen/SKILL.md): how to talk to a running tussen (MCP, `ctl`, names).
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): what makes a good shader here, and the pull request.
+- [`music/`](music/): how a set feels and moves. The pictures follow the music.
 
-## Talking to tussen
+## Trying it in their tussen
 
-Through its MCP server, `http://127.0.0.1:9097/mcp` (Settings › Advanced › Hub › MCP for agents). Every action tussen has is a tool there, and every edit can be undone. The [`tussen`](skills/tussen/SKILL.md) skill has the names, the recipes and the traps, and how to get an unconnected setup going.
+Their tussen is their instrument, and may be in the middle of a show.
 
-## Taste
+1. **Never start, install or download tussen.** They open it. If it isn't running, say what you'd test and ask.
+2. **Compile with `check_shader` first**: it changes nothing.
+3. **Ask before changing anything of theirs** (a mix, a look, a file in their vibe, anything on a screen). To see a shader run, propose a separate `shader-test` mix, as the skill says, and remove it afterwards.
+4. **Check every change** with `list_shaders`: a shader that fails to compile keeps the last good one running, so nothing breaks, but your change didn't happen.
 
-The [`music/`](music/) folder says how a set should feel and move, and [`shaders/`](shaders/) holds the pictures to start from. Read them before choosing a look: the music leads and the pictures follow it.
+## The pull request
+
+One pull request adds or changes **one** shader in `shaders/`, and touches nothing else. MIT, with a credit line in its header. Details in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Keep it growing
 
-When something surprises you while playing (a name tussen wanted, a call it refused, a shader trick that worked), add it to the skill in the same session, as one line with its reason.
+When tussen surprises you while writing a shader (a misleading error, a trick that worked), add it to the `tussen-shaders` skill as one line with its reason, in its own pull request.

@@ -8,8 +8,8 @@ tussen is the hub that runs a jam: your music, cameras and controllers come in a
 
 | | |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | what an agent should know before it touches a live show |
-| [`skills/`](skills/) | skills for driving tussen: setting it up, shaders, controllers, outputs, vibes |
+| [`AGENTS.md`](AGENTS.md) | for a coding agent in this clone: writing a shader and trying it in your tussen |
+| [`skills/`](skills/) | `tussen`: driving tussen (setting it up, shaders, controllers, outputs, vibes); `tussen-shaders`: writing a shader that works in it |
 | [`shaders/`](shaders/) | shaders I believe in, ready to drop into a vibe |
 | [`music/`](music/) | musical guidance: how a set moves, and what the pictures should do with it |
 
@@ -29,7 +29,7 @@ It saves the `tussen` skill from simply.audio into its own skills folder, connec
 - *"Map the Launchpad's bottom row to switch between these three looks on the bar."*
 - *"Send the stage output to NDI."*
 
-The shaders in [`shaders/`](shaders/) reach tussen as the `simply-jam` shader pack: your agent installs it, or tussen's Settings › Folders does.
+The shaders in [`shaders/`](shaders/) reach tussen as the `simply-jam` shader pack: your agent installs it, or tussen's Settings › Advanced › Folders does.
 
 ## Put a shader on a pad, without an agent
 
@@ -44,6 +44,10 @@ bin/jam pad 1/3 print --mode 4 --amount 0.5
 
 It copies the shader into the playing vibe and swaps it into that pad's look. It needs curl and jq; `JAM_CONTROLLER` picks another controller (default `launchpad-x`).
 
+
+## Contributing a shader
+
+New looks are welcome. Point your coding agent at a clone of this repo and ask it for the shader you have in mind: [`AGENTS.md`](AGENTS.md) and the [`tussen-shaders`](skills/tussen-shaders/SKILL.md) skill tell it how to write one that works in tussen and how to try it in yours. [CONTRIBUTING.md](CONTRIBUTING.md) says what makes a good one and how a pull request looks: one shader per pull request. Once merged, it reaches players in the next `simply-jam` shader pack.
 
 ## Community
 
