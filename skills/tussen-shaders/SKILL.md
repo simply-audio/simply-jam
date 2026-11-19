@@ -40,7 +40,13 @@ A simply-jam shader:
      the effect with it, not only the mix. At amount 0 tussen skips the
      shader entirely, so 0 must be the picture passing through untouched,
      the music included: nothing may still flash or move there (a pad
-     effect, a mode that ignores `amount`, a pulse on the beat).
+     effect, a mode that ignores `amount`, a pulse on the beat). Exactly:
+     a float parameter named `amount` with 0 in its range, below 1/256, by
+     its live value if a controller or OSC holds it, else its fixed value;
+     an `amount` driven by the level, beat or bar is never skipped. A kept
+     buffer survives a dip under 1 s and is cleared after a longer one.
+     A setting that should hold at rest ("how much shows between kicks")
+     is its own parameter, not `amount`: the standard `wipe` calls it `rest`.
    - `react` (default 0.5): how much the music moves it. Multiply every
      music-driven part by it, so 0 holds the look still and a pad on `react`
      brings the music in and out.
