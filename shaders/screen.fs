@@ -98,9 +98,11 @@ float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth 
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
 // amount 1 is the look as tuned: it rests at REST and the music pushes it
-// from there. amount scales it all down to 0, the picture as it came in.
+// from there. Lower, it rests lower (near 0 only the music brings it in),
+// and below 0.1 it fades out to the picture as it came in at 0.
 const float REST = 0.25;
 float press() { return REST * amount; }
+float wet() { return clamp(amount * 10.0, 0.0, 1.0); }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float lowsNow() { return reactK() * sigB().r; }
 float midsNow() { return reactK() * sigB().g; }
@@ -542,9 +544,9 @@ void main() {
   else if (m < 1.5) col = film(uv, px);
   else if (m < 2.5) col = vhs(uv, px);
   else if (m < 3.5) col = nightVision(uv, px);
-  else if (m < 4.5) { gl_FragColor = vec4(mix(cam, hologram(uv, px), amount), 1.0); return; }
+  else if (m < 4.5) { gl_FragColor = vec4(mix(cam, hologram(uv, px), wet()), 1.0); return; }
   else if (m < 5.5) col = hatStatic(uv, px);
   else if (m < 6.5) col = hatScanlines(uv, px);
   else col = hatGrain(uv, px);
-  gl_FragColor = vec4(mix(cam, col, regionAt(uv) * amount), 1.0);
+  gl_FragColor = vec4(mix(cam, col, regionAt(uv) * wet()), 1.0);
 }

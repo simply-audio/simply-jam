@@ -87,9 +87,11 @@ float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth 
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
 // amount 1 is the look as tuned: it rests at REST and the music pushes it
-// from there. amount scales it all down to 0, the picture as it came in.
+// from there. Lower, it rests lower (near 0 only the music brings it in),
+// and below 0.1 it fades out to the picture as it came in at 0.
 const float REST = 0.35;
 float press() { return REST * amount; }
+float wet() { return clamp(amount * 10.0, 0.0, 1.0); }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float midsNow() { return reactK() * sigB().g; }
 
@@ -240,6 +242,6 @@ void main() {
   }
   vec3 outc = m < 0.5 ? rowsBack() : waveTear(uv, kick, mids, hats);
   // nothing pressed and no kick, or amount 0: the picture as it came
-  outc = mix(cam(uv), outc, amount * clamp((press() + kick) * 10.0, 0.0, 1.0));
+  outc = mix(cam(uv), outc, wet() * clamp((press() + kick) * 10.0, 0.0, 1.0));
   gl_FragColor = vec4(clamp(outc, 0.0, 1.0), 1.0);
 }

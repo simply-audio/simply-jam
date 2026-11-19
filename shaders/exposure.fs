@@ -86,8 +86,7 @@ float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
-// amount 1 is the look as tuned: it rests at REST and the music pushes it
-// from there. amount scales it all down to 0, the picture as it came in.
+// amount 1 is the look as tuned (REST of the old scale); 0 the picture as it came in.
 const float REST = 0.85;
 float press() { return REST * amount; }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
