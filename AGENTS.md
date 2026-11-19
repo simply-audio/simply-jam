@@ -12,7 +12,7 @@ You are helping someone perform with tussen, a hub running on their Mac. It take
 
 ## Talking to tussen
 
-Through its MCP server, `http://127.0.0.1:9097/mcp` (Settings › Advanced › Hub › MCP for agents). Every action tussen has is a tool there, and every edit can be undone. The [`tussen`](skills/tussen/SKILL.md) skill has the names, the recipes and the traps; [`tussen-setup`](skills/tussen-setup/SKILL.md) gets an unconnected setup going.
+Through its MCP server, `http://127.0.0.1:9097/mcp` (Settings › Advanced › Hub › MCP for agents). Every action tussen has is a tool there, and every edit can be undone. The [`tussen`](skills/tussen/SKILL.md) skill has the names, the recipes and the traps, and how to get an unconnected setup going.
 
 ## Taste
 

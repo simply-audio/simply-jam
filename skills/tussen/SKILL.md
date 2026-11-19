@@ -1,7 +1,18 @@
 ---
 name: tussen
-description: Drive a running tussen hub (Simply Tussen, the live audio/video/OSC/MIDI hub) from an agent. Write and load shaders (ISF GLSL, multi-pass, audio-reactive, ML depth), map controllers such as the Launchpad X to effects, add inputs, route mixes and send video out, live during a performance, through `simply-tussen ctl`. Use whenever someone asks you to "use tussen" to do something, sets up visuals or a show in tussen, or performs with it; not for changing tussen's own code.
+description: Drive a running tussen hub (Simply Tussen, the live audio/video/OSC/MIDI hub) from an agent, and set someone up to jam with it. Write and load shaders (ISF GLSL, multi-pass, audio-reactive, ML depth), map controllers such as the Launchpad X to effects, add inputs, route mixes and send video out, live during a performance, through tussen's MCP server or `ctl`. Use whenever someone asks you to "use tussen", to set them up with tussen, sets up visuals or a show in tussen, or performs with it; not for changing tussen's own code.
+metadata:
+  source: https://simply.audio/tussen/agent
 ---
+
+**Before your first call to tussen in a session**, read tussen's version:
+`defaults read "/Applications/Simply Tussen.app/Contents/Info" CFBundleShortVersionString`
+(`Simply Tussen Pro.app` for Pro). If it isn't the `tussen` in `.installed.json`
+beside this file, refresh this skill: run the one command for your agent on
+https://simply.audio/tussen/agent (it saves every file again and updates
+`.installed.json`), then re-read this file. If the version is older than the
+`min` there, tell the person to update tussen from https://simply.audio/tussen
+before anything else.
 
 # Using tussen
 
@@ -13,8 +24,13 @@ OSC and MIDI destinations, other hubs). Everything it does is a **plane
 call**: the window, MCP and `ctl` all call the same methods, every edit is
 undoable; the sound is saved in the routing and the look in the vibe.
 
-This skill is the operator's knowledge. If tussen isn't installed, running
-or connected, use the `tussen-setup` skill first.
+This skill is the operator's knowledge. If tussen isn't open or you aren't
+connected yet, start with *Getting someone set up* below.
+
+**The hub's own tool list wins.** `tools/list` (or `ctl methods`) always
+matches the running app. A call this skill names that the hub doesn't list
+is one this tussen predates: say *"update tussen from simply.audio/tussen for
+this"* and carry on with what exists.
 
 ## The rules that keep a show alive
 
@@ -33,6 +49,46 @@ or connected, use the `tussen-setup` skill first.
 5. **Check every change** (`list_shaders`, `get_state`). A shader that
    fails to compile keeps the last good version running, so a save never
    blacks the screen, but your change didn't happen either.
+
+## Getting someone set up
+
+The person may never have used a terminal. They don't type commands: you do.
+Say what you're doing in plain words.
+
+1. **Is tussen open?** `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9097/mcp`:
+   any code means yes. If not, ask them to open Simply Tussen from Applications
+   themselves (no tussen yet: they click **Download** on https://simply.audio/tussen
+   and drag it into Applications), then wait, checking every few seconds.
+   **Never download, install or open tussen yourself, never fetch a `.dmg` or
+   `/tussen/get`, never set `TUSSEN_REAL_IO`, and never start a hub of your own.**
+2. **Until your harness lists tussen's MCP tools** (from the next session), use
+   `ctl` (below). Ask the person once to let you run it without asking each time.
+3. **Say hello**: `get_state`, one line on what plays and what they see.
+4. **Nothing tapped, no picture?** A fresh tussen taps nothing. Before they
+   press anything, tell them: *"tussen will ask macOS for two things: to hear the
+   music your Mac plays, and to use your camera. Click **Allow** on both. If you
+   click Don't Allow, tussen shows you where to switch it on."* Then ask them to
+   press **Start jamming** in tussen's Settings › Setup. It taps every app but
+   tussen (`music`, muted), plays on the Mac's own output, adds the camera, makes
+   the `stage` output and plays the `starter` vibe. Wait, reading `get_state`.
+5. **Offer one next step** in plain words: another look, a look that changes on
+   the bar, the picture fullscreen on a second screen.
+6. **More looks?** `install_shader_pack {pack: "simply-jam"}` (`list_shader_packs`
+   says what exists). On a tussen without that tool, copy the one shader you need
+   from https://simply.audio/tussen/packs/ into the playing vibe's `shaders/`.
+
+### When something's wrong
+
+- **Nothing answers on 9097:** tussen isn't open, MCP is off (Settings ›
+  Advanced › Hub), or another program holds the port.
+- **The music input says it heard nothing** while an app plays: system audio was
+  refused. tussen shows the person where to switch it on; their Mac asks for
+  their password. Point them at it; never try to get round a prompt.
+- **The tools appear but calls fail:** the hub is restarting; wait and try
+  `get_state` again.
+- **Help from people:** the simply.audio Discord, https://discord.gg/bAEAFkDQFX.
+- Vibes, routings, takes and shaders live in `~/Music/simply.audio/tussen/`;
+  mappings, inputs and outputs in `~/.config/tussen/`.
 
 ## Talking to the hub
 

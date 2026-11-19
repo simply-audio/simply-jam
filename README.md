@@ -15,28 +15,21 @@ tussen is the hub that runs a jam: your music, cameras and controllers come in a
 
 ## Install
 
-**1. tussen.** Download it from [simply.audio/tussen](https://simply.audio/tussen), open it, and in **Settings › Advanced › Hub** make sure **MCP for agents** is on.
+**1. tussen.** Click **Download** on [simply.audio/tussen](https://simply.audio/tussen), drag Simply Tussen into Applications and open it. Press **Start jamming** and play some music: the pictures move with it.
 
-**2. pi**, the agent, from [pi.dev](https://pi.dev):
+**2. Your agent** (Claude Code, Codex, pi or another). Paste this into it:
 
-```sh
-curl -fsSL https://pi.dev/install.sh | sh
-```
+> Set me up to jam with tussen: follow https://simply.audio/tussen/agent
 
-**3. simply-jam, and the connection to tussen:**
+It saves the `tussen` skill from simply.audio into its own skills folder, connects to tussen, and keeps the skill up to date when tussen updates. You don't type any commands.
 
-```sh
-pi install git:github.com/simply-audio/simply-jam
-pi mcp add tussen --url http://127.0.0.1:9097/mcp
-```
-
-**4. Play.** Run `pi` and ask, for example:
+**3. Play.** Ask, for example:
 
 - *"Put a shader on my camera that pulses with the kick."*
 - *"Map the Launchpad's bottom row to switch between these three looks on the bar."*
 - *"Send the stage output to NDI."*
 
-If anything isn't installed or connected yet, the `tussen-setup` skill walks you and the agent through it.
+The shaders in [`shaders/`](shaders/) reach tussen as the `simply-jam` shader pack: your agent installs it, or tussen's Settings › Folders does.
 
 ## Put a shader on a pad, without an agent
 
@@ -51,7 +44,6 @@ bin/jam pad 1/3 print --mode 4 --amount 0.5
 
 It copies the shader into the playing vibe and swaps it into that pad's look. It needs curl and jq; `JAM_CONTROLLER` picks another controller (default `launchpad-x`).
 
-Other agents (Claude Code, Codex, …) can use the skills too: point them at `skills/` and connect them to `http://127.0.0.1:9097/mcp`.
 
 ## Community
 
