@@ -1,39 +1,33 @@
 # simply-jam
 
-Performing with [tussen](https://simply.audio/tussen), together with an agent.
+Shaders for [tussen](https://simply.audio/tussen), and the place to make new ones.
 
-tussen is the hub that runs a jam: your music, cameras and controllers come in and are lined up on the beat, and sound and pictures go out. simply-jam is everything an agent needs to play it with you. It holds the skills for driving a running tussen, the shaders I perform with, and how I think about the music.
+tussen is the hub that runs a jam: your music, cameras and controllers come in and are lined up on the beat, and sound and pictures go out. The pictures are shaders. simply-jam holds the ones I perform with, and everything you and your coding agent need to write your own and contribute it.
+
+## Make a shader
+
+1. **Have tussen running** on your Mac ([download it](https://simply.audio/tussen)), so you can try what you write.
+2. **Clone this repo and point your coding agent at it** (Claude Code, Codex, pi or another). Ask it for the look you have in mind: *"a shader that shatters the picture on the kick and lets the figure stay clear"*. [`AGENTS.md`](AGENTS.md) and the [`tussen-shaders`](skills/tussen-shaders/SKILL.md) skill tell it how to write one that works in tussen, starting from [`template.fs`](skills/tussen-shaders/template.fs), and how to try it in your tussen without disturbing what's playing.
+3. **Open a pull request** with that one shader. [CONTRIBUTING.md](CONTRIBUTING.md) says what makes a good one and what the pull request needs.
+
+Once merged, it ships in the next `simply-jam` shader pack on simply.audio, and every tussen player can install it from Settings › Advanced › Folders, or have their agent do it. They never need GitHub.
 
 ## What's in it
 
 | | |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | for a coding agent in this clone: writing a shader and trying it in your tussen |
-| [`skills/`](skills/) | `tussen`: driving tussen (setting it up, shaders, controllers, outputs, vibes); `tussen-shaders`: writing a shader that works in it |
-| [`shaders/`](shaders/) | shaders I believe in, ready to drop into a vibe |
-| [`music/`](music/) | musical guidance: how a set moves, and what the pictures should do with it |
+| [`shaders/`](shaders/) | the shaders, one ISF GLSL file each: the `simply-jam` shader pack |
+| [`skills/tussen-shaders/`](skills/tussen-shaders/SKILL.md) | writing a shader that works in tussen, and testing it |
+| [`AGENTS.md`](AGENTS.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md) | for your agent, and for you |
+| [`music/`](music/) | how a set moves, and what the pictures should do with it |
+| [`skills/tussen/`](skills/tussen/SKILL.md) | the skill an agent uses to set someone up and perform with tussen; simply.audio publishes it from here |
+| [`bin/jam`](bin/jam) | puts a shader from `shaders/` on a Launchpad pad of the running tussen (below) |
 
-## Install
+## Playing with tussen?
 
-**1. tussen.** Click **Download** on [simply.audio/tussen](https://simply.audio/tussen), drag Simply Tussen into Applications and open it. Press **Start jamming** and play some music: the pictures move with it.
+Start at [simply.audio/tussen](https://simply.audio/tussen): download tussen, then tell your agent *"Set me up to jam with tussen: follow https://simply.audio/tussen/agent"*. It gets the `tussen` skill and the shaders from simply.audio; you don't need this repo.
 
-**2. Your agent** (Claude Code, Codex, pi or another). Paste this into it:
-
-> Set me up to jam with tussen: follow https://simply.audio/tussen/agent
-
-It saves the `tussen` skill from simply.audio into its own skills folder, connects to tussen, and keeps the skill up to date when tussen updates. You don't type any commands.
-
-**3. Play.** Ask, for example:
-
-- *"Put a shader on my camera that pulses with the kick."*
-- *"Map the Launchpad's bottom row to switch between these three looks on the bar."*
-- *"Send the stage output to NDI."*
-
-The shaders in [`shaders/`](shaders/) reach tussen as the `simply-jam` shader pack: your agent installs it, or tussen's Settings › Advanced › Folders does.
-
-## Put a shader on a pad, without an agent
-
-`bin/jam` puts any shader from [`shaders/`](shaders/) on a Launchpad look pad of the running tussen:
+## A shader on a pad, without an agent
 
 ```sh
 bin/jam shaders              # what you can load
@@ -43,11 +37,6 @@ bin/jam pad 1/3 print --mode 4 --amount 0.5
 ```
 
 It copies the shader into the playing vibe and swaps it into that pad's look. It needs curl and jq; `JAM_CONTROLLER` picks another controller (default `launchpad-x`).
-
-
-## Contributing a shader
-
-New looks are welcome. Point your coding agent at a clone of this repo and ask it for the shader you have in mind: [`AGENTS.md`](AGENTS.md) and the [`tussen-shaders`](skills/tussen-shaders/SKILL.md) skill tell it how to write one that works in tussen and how to try it in yours. [CONTRIBUTING.md](CONTRIBUTING.md) says what makes a good one and how a pull request looks: one shader per pull request. Once merged, it reaches players in the next `simply-jam` shader pack.
 
 ## Community
 
