@@ -107,6 +107,9 @@ vec4 sigPass() {
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 float kickAge() { return sigA().a; }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
@@ -498,7 +501,7 @@ vec3 lookHatRim(vec2 uv, vec3 cam, float dist) {
 vec3 lookBeatHalo(vec2 uv, vec3 cam, float dist) {
   float amt = engage();
   float downbeat = mod(floor(BEAT), 4.0) < 0.5 ? BH_DOWNBEAT : 1.0;
-  float pulse = pow(1.0 - PHASE, BH_CURVE) * downbeat;
+  float pulse = pow(1.0 - PHASE, BH_CURVE) * downbeat * musicOn() * reactK();
   float r = BH_R_MIN + mix(BH_R_MAX_LO, BH_R_MAX_HI, amount) * pulse;
   float outside = 1.0 - crisp(dist);
   float band = (1.0 - smoothstep(r - aaW(), r + aaW(), dist)) * outside;
@@ -646,7 +649,7 @@ vec3 lookInkPaper(vec2 uv, vec3 cam, float dist) {
   float age = kickAge();
   float id = IMG_NORM_PIXEL(plate, vec2(0.5)).a;
   if (age < IP_DRY) {
-    float wet = 1.0 - age / IP_DRY;
+    float wet = (1.0 - age / IP_DRY) * min(reactK(), 1.0);
     vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
     ink = max(ink, splash(p, id, figCentreCoarse(), aspect) * (0.35 + 0.65 * wet) * wet);
   }

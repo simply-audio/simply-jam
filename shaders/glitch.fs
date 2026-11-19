@@ -7,7 +7,7 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
-    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.25, "DESCRIPTION": "pressure: the resting base; kicks, mids and hats push it up" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how strong the glitch is: 1 rests where it was tuned and kicks, mids and hats push it up; 0 the picture untouched" },
     { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 9, "DEFAULT": 0,
       "VALUES": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -93,10 +93,17 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 1 is the look as tuned: it rests at REST and the music pushes it
+// from there. amount scales it all down to 0, the picture as it came in.
+const float REST = 0.25;
+float press() { return REST * amount; }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float lowsNow() { return reactK() * sigB().r; }
 float midsNow() { return reactK() * sigB().g; }
@@ -153,7 +160,8 @@ float hatAge() { return hatS().g; }
 float hatSpike() { return exp(-hatAge() / 0.1); }
 float hatCount() { return hatS().b; }
 // kick counter stand-in (old u_kseed): the last onset's time, new on every kick
-float kickSeed() { return fract(floor((TIME - kickAge()) * 20.0) * 0.6180339) * 977.0 + beatSync * floor(BEAT); }
+// react 0 holds it: the seed stops changing on kicks
+float kickSeed() { return fract(floor((TIME - kickAge()) * 20.0) * 0.6180339) * 977.0 * step(0.001, react) + beatSync * floor(BEAT); }
 
 // the room plate: takes in the camera slowly wherever it is not the figure
 // (FX 214's trick), so what stands behind a moving figure is there to show
@@ -172,7 +180,7 @@ vec3 srcAt(vec2 uv) {
 }
 // engagement: pressure + each FX's own kick/mids/highs consts scaled by the knobs
 float engage(float ke, float me, float he) {
-  return clamp(amount + kickAmt * ke * kickNow() + midsAmt * me * midsNow() + highsAmt * he * highsNow(), 0.0, 1.0);
+  return clamp(press() + kickAmt * ke * kickNow() + midsAmt * me * midsNow() + highsAmt * he * highsNow(), 0.0, 1.0);
 }
 float h11(float n) { return fract(sin(n * 91.345) * 47453.5453); }
 float h21(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -245,7 +253,7 @@ const float BG_MIDS_ENGAGE = 0.25;
 // runs in its own persistent pass (`mosh` is the old u_self)
 vec4 moshPass(vec2 uv) {
   float kick = kickNow(); float mids = midsNow();
-  float amt = max(step(0.5, amount), clamp(kickAmt * BG_KICK_ENGAGE * kick + midsAmt * BG_MIDS_ENGAGE * mids, 0.0, 1.0));
+  float amt = max(step(0.5, press()), clamp(kickAmt * BG_KICK_ENGAGE * kick + midsAmt * BG_MIDS_ENGAGE * mids, 0.0, 1.0));
   if (amt < 0.02) return vec4(srcAt(uv), 1.0);
   float kb = BG_KICK_BURST * kick;
   float st = floor(TIME * BG_RATE) + 17.0 * floor(kb * 4.0);
@@ -401,7 +409,7 @@ const float RB_GLOW     = 0.25;
 
 vec3 rgbBurst(vec2 uv) {
   float kick = kickNow(); float mids = midsNow();
-  float burst = clamp(RB_FX_SPLIT * amount + kickAmt * RB_KICK_ENGAGE * kick * kick + midsAmt * RB_MIDS_ENGAGE * mids, 0.0, 1.0);
+  float burst = clamp(RB_FX_SPLIT * press() + kickAmt * RB_KICK_ENGAGE * kick * kick + midsAmt * RB_MIDS_ENGAGE * mids, 0.0, 1.0);
   vec2 c = figCentroid();
   vec3 k = 1.0 + RB_SPLIT * burst * RB_CH_SCALE;
   vec3 a = RB_MIDS_WOBBLE * mids * sin(TIME * 2.0 + vec3(0.0, 2.1, 4.2));
@@ -426,7 +434,7 @@ vec2 shakeOf(float seed) {
   return vec2(h11(fr + seed) - 0.5, (h11(fr * 1.37 + seed + 11.0) - 0.5) * VB_VERTICAL) * 2.0;
 }
 vec3 vibrate(vec2 uv) {
-  float pxs = highsAmt * (VB_HIGHS_PX * highsNow() + VB_HAT_PX * hatSpike()) + VB_PRESS_PX * amount
+  float pxs = highsAmt * (VB_HIGHS_PX * highsNow() + VB_HAT_PX * hatSpike()) + VB_PRESS_PX * press()
             + kickAmt * VB_KICK_PX * kickNow() + midsAmt * VB_MIDS_PX * midsNow();
   vec2 o = shakeOf(0.0) * pxs / RENDERSIZE;
   vec2 fr = shakeOf(5.0) * pxs * VB_FRINGE / RENDERSIZE;
@@ -481,7 +489,7 @@ vec3 katana(vec2 uv) {
   float kick = kickNow();
   float seed = kickSeed();
   float hit = kickAmt * KT_KICK_ENGAGE * kick;
-  float s = clamp(KT_PRESS * amount + hit + midsAmt * KT_MIDS_ENGAGE * midsNow(), 0.0, 1.0);
+  float s = clamp(KT_PRESS * press() + hit + midsAmt * KT_MIDS_ENGAGE * midsNow(), 0.0, 1.0);
   float tilt = KT_TILT * (h11(seed) * 2.0 - 1.0);
   float y = (uv.y + tilt * (uv.x - 0.5)) * KT_SLICES + h11(seed + 1.0);
   float band = floor(y);
@@ -543,15 +551,15 @@ void main() {
   vec3 cam = camAt(uv);
   vec3 col = cam;
   // modes that move the picture compose themselves (each channel its own silhouette)
-  if (m < 0.5) { gl_FragColor = vec4(rgbSplit(uv), 1.0); return; }
+  if (m < 0.5) { gl_FragColor = vec4(mix(cam, rgbSplit(uv), amount), 1.0); return; }
   if (m < 1.5) col = IMG_NORM_PIXEL(mosh, uv).rgb;
-  else if (m < 2.5) { gl_FragColor = vec4(sliceGlitch(uv), 1.0); return; }
+  else if (m < 2.5) { gl_FragColor = vec4(mix(cam, sliceGlitch(uv), amount), 1.0); return; }
   else if (m < 3.5) col = prism(uv);
   else if (m < 4.5) col = pixelStretch(uv);
-  else if (m < 5.5) { gl_FragColor = vec4(rgbBurst(uv), 1.0); return; }
-  else if (m < 6.5) { gl_FragColor = vec4(vibrate(uv), 1.0); return; }
-  else if (m < 7.5) { gl_FragColor = vec4(crackle(uv, px), 1.0); return; }
-  else if (m < 8.5) { gl_FragColor = vec4(katana(uv), 1.0); return; }
+  else if (m < 5.5) { gl_FragColor = vec4(mix(cam, rgbBurst(uv), amount), 1.0); return; }
+  else if (m < 6.5) { gl_FragColor = vec4(mix(cam, vibrate(uv), amount), 1.0); return; }
+  else if (m < 7.5) { gl_FragColor = vec4(mix(cam, crackle(uv, px), amount), 1.0); return; }
+  else if (m < 8.5) { gl_FragColor = vec4(mix(cam, katana(uv), amount), 1.0); return; }
   else col = microGlitch(uv, px);
-  gl_FragColor = vec4(mix(cam, col, regionAt(uv)), 1.0);
+  gl_FragColor = vec4(mix(cam, col, regionAt(uv) * amount), 1.0);
 }

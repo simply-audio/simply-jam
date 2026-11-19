@@ -107,6 +107,9 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
@@ -152,7 +155,7 @@ vec4 depthAndLifePass(vec2 uv) {
   float edge = max(smoothstep(EDGE_T, EDGE_T * 2.0, gd), smoothstep(0.25, 0.7, gf));
 
   // did a kick land just now? (the onset's time, or the beat with beatSync)
-  float kick = step(kickAge(), STAMP_WINDOW);
+  float kick = step(kickAge(), STAMP_WINDOW) * min(reactK(), 1.0);
   kick = max(kick, step(0.5, beatSync) * step(PHASE * 60.0 / max(TEMPO, 1.0), STAMP_WINDOW));
 
   // the memory: ageing, drifting outward from the figure, a whisper of lift
@@ -224,7 +227,7 @@ vec3 gelAt(vec2 uv, float back, float celInt) {
   float t = clamp(0.5 + (dG - dF) / (2.0 * EPSILON), 0.0, 1.0);
   float w = smoothstep(0.0, 1.0, t);
   vec3 pOut = compAdd(cF * aF, cG * aG, aF, aG, w, SIGMA);
-  vec3 shown = pOut * (EXPOSURE * (1.0 + BEAT_FLASH * exp(-5.0 * PHASE)));
+  vec3 shown = pOut * (EXPOSURE * (1.0 + BEAT_FLASH * exp(-5.0 * PHASE) * musicOn() * reactK()));
   return 1.0 - exp(-shown);
 }
 

@@ -7,7 +7,7 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
-    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.35, "DESCRIPTION": "pressure: how crushed (jpeg) or torn (wave) it is between kicks" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how strong the crush is: 1 as crushed (jpeg) or torn (wave) between kicks as tuned, kicks push it harder; 0 the picture untouched" },
     { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 1, "DEFAULT": 0, "VALUES": [0, 1], "LABELS": ["jpeg crush", "wave tear"] },
     { "NAME": "cell", "TYPE": "float", "MIN": 1.0, "MAX": 4.0, "DEFAULT": 2.0, "DESCRIPTION": "jpeg: pixels per block pixel (blocks are 8 of them: 2 makes 16-pixel blocks) · wave: band height in pixels ×2" },
@@ -79,10 +79,17 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 1 is the look as tuned: it rests at REST and the music pushes it
+// from there. amount scales it all down to 0, the picture as it came in.
+const float REST = 0.35;
+float press() { return REST * amount; }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float midsNow() { return reactK() * sigB().g; }
 
@@ -158,7 +165,7 @@ vec4 colsForward(float kick, float mids, float hats) {
   vec2 blk = floor(q / 8.0);
   vec2 centre = uvOf(blk * 8.0 + 4.0);
   float clean = 1.0 - 0.85 * figureClear * figureAt(centre);
-  float crush = clamp(amount + 0.9 * kick, 0.0, 1.5) * clean;
+  float crush = clamp(press() + 0.9 * kick, 0.0, 1.5) * clean;
   float base = mix(0.008, 1.1, crush * crush);
   float steep = 1.0 + (u + v) * (0.4 + 0.8 * crush);
   float qy = base * steep;
@@ -176,7 +183,7 @@ vec4 colsForward(float kick, float mids, float hats) {
   }
   // a kick drops a few blocks in the wrong colour, as a broken file does
   float seed = floor(TIME - kickAge());
-  float wrong = step(hash(blk * 1.37 + seed * 7.1), 0.015 * kickAmt) * step(kickAge(), 0.12) * step(u + v, 0.5);
+  float wrong = step(hash(blk * 1.37 + seed * 7.1), 0.015 * kickAmt) * step(kickAge(), 0.12) * step(u + v, 0.5) * min(reactK(), 1.0);
   s.yz += wrong * (vec2(hash(blk + seed), hash(blk - seed)) - 0.5) * 2.4;
   return vec4(s, 1.0);
 }
@@ -209,7 +216,7 @@ vec3 waveTear(vec2 uv, float kick, float mids, float hats) {
   float span = mix(0.35, 1.0, mids);             // how much of the wave spans the picture
   float t = row / rows * span;
   float clean = 1.0 - 0.85 * figureClear * figureAt(uv);
-  float tear = (0.14 * amount + 0.12 * kick) * clean;
+  float tear = (0.14 * press() + 0.12 * kick) * clean;
   float apart = (0.004 + 0.04 * hats) * span;
   float r = cam(vec2(uv.x + waveAt(t) * tear, uv.y)).r;
   float g = cam(vec2(uv.x + waveAt(t + apart) * tear, uv.y)).g;
@@ -232,7 +239,7 @@ void main() {
     gl_FragColor = colsBack(); return;
   }
   vec3 outc = m < 0.5 ? rowsBack() : waveTear(uv, kick, mids, hats);
-  // nothing pressed and no kick: the picture as it came
-  outc = mix(cam(uv), outc, clamp((amount + kick) * 10.0, 0.0, 1.0));
+  // nothing pressed and no kick, or amount 0: the picture as it came
+  outc = mix(cam(uv), outc, amount * clamp((press() + kick) * 10.0, 0.0, 1.0));
   gl_FragColor = vec4(clamp(outc, 0.0, 1.0), 1.0);
 }

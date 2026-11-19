@@ -140,6 +140,9 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
@@ -203,7 +206,7 @@ vec4 statePass(float i) {
   float n = slotsN();
   float beatI = mod(floor(BEAT), 64.0);
   float beatOn = step(0.5, abs(beatI - s1.r)) * (1.0 - first);
-  float kOn = max((1.0 - step(0.001, kickAge())), step(0.5, beatSync) * beatOn);
+  float kOn = max((1.0 - step(0.001, kickAge())) * step(0.001, react), step(0.5, beatSync) * beatOn);
   float newest = s0.r;
   float count = s0.a;
   float shoot = 0.0;
@@ -339,7 +342,7 @@ void main() {
     if (w > 0.5 && w < 1.5) {
       // ── bar sheet, figures: FX 179 ── tiles struck this bar, cleared on the 1
       float shown = step(idx, bb + 0.5);
-      float pop = step(abs(idx - bb), 0.5) * pow(1.0 - PHASE, 4.0) * NEW_POP;
+      float pop = step(abs(idx - bb), 0.5) * pow(1.0 - PHASE, 4.0) * NEW_POP * musicOn() * reactK();
       vec4 s = IMG_NORM_PIXEL(atlas, uv);
       vec3 tc = s.rgb * hueTint(idx) * (1.0 + pop);
       col = mix(cam, tc, shown * amt * TILE_OPACITY * mix(ROOM_IN_TILE, 1.0, s.a));
@@ -390,7 +393,7 @@ void main() {
       col = mix(col, c, a * mix(1.0, keep(s.a), inner * step(0.5, whereN()) * step(whereN(), 1.5)));
     }
     col = mix(col, cam, fig);
-    col += BEAT_FLASH * amt * (1.0 - smoothstep(0.0, FLASH_BEATS, PHASE));
+    col += BEAT_FLASH * amt * (1.0 - smoothstep(0.0, FLASH_BEATS, PHASE)) * musicOn() * reactK();
   } else if (m < 3.5) {
     // ── kick panes: FX 276 ── pane 0 live, pane i about i·spread frames back
     vec4 s1 = stAt(1.0);

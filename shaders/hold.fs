@@ -169,6 +169,9 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
@@ -243,7 +246,7 @@ vec4 statePass(float i) {
   float mids = midsNow();
   float beatI = mod(floor(BEAT), 64.0);
   float beatOn = step(0.5, abs(beatI - s1.a)) * (1.0 - first);
-  float kOn = max((1.0 - step(0.001, kickAge())), step(0.5, beatSync) * beatOn);
+  float kOn = max((1.0 - step(0.001, kickAge())) * step(0.001, react), step(0.5, beatSync) * beatOn);
   float pressed = step(0.5, amount);
   float latchRise = pressed * (1.0 - step(0.5, s0.b));
   float pressRise = step(0.1, amount) * (1.0 - step(0.1, s0.b));

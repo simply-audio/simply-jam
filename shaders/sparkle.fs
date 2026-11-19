@@ -7,7 +7,7 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
-    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.9, "DESCRIPTION": "pressure: how bright the embers and the frozen line are" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how bright the embers and the frozen line are, and how dark the room goes (1 as tuned; 0 the picture untouched)" },
     { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "palette", "TYPE": "long", "MIN": 0, "MAX": 3, "DEFAULT": 0, "VALUES": [0, 1, 2, 3], "LABELS": ["yellow to magenta", "white to cyan", "gold to red", "the picture's colours"], "DESCRIPTION": "the embers' colour, born to dying" },
     { "NAME": "line", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.6, "DESCRIPTION": "how bright the outline glows while it is still frozen, before it breaks up" },
@@ -89,10 +89,17 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 1 is the look as tuned: it rests at REST and the music pushes it
+// from there. amount scales it all down to 0, the picture as it came in.
+const float REST = 0.9;
+float press() { return REST * amount; }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float midsNow() { return reactK() * sigB().g; }
 
@@ -158,7 +165,7 @@ vec4 lifePass(vec2 uv) {
   float fadeRate = (0.6 + 0.8 * hash(cell + 13.7)) / emberLife;
   float l = max(IMG_NORM_PIXEL(life, from).r - fadeRate * dt, 0.0) * step(1.0, FRAMEINDEX);
   // a kick replaces the field with this instant's outline
-  l = mix(l, edge, stamp * kickAmt);
+  l = mix(l, edge, stamp * kickAmt * min(reactK(), 1.0));
   float t30 = floor(TIME * 30.0);
   l = max(l, edge * SOLID_UNTIL * 0.9 * step(hash(cell + t30), stream * 0.08));
   l = max(l, edge * SOLID_UNTIL * 0.9 * step(hash(cell + t30 + 3.1), highsNow() * highsAmt * 0.3));
@@ -197,12 +204,12 @@ void main() {
   float solid = smoothstep(SOLID_UNTIL, SOLID_UNTIL + 0.1, l);
   float spark = smoothstep(0.0, 0.12, l) * (1.0 - solid) * survive * dotMask * glint;
   vec3 col = emberColour(dying, c);
-  vec3 base = c * (1.0 - dim);
-  vec3 outc = mix(base, col, clamp(amount * spark, 0.0, 1.0));
+  vec3 base = c * (1.0 - dim * amount);
+  vec3 outc = mix(base, col, clamp(press() * spark, 0.0, 1.0));
   // the frozen outline: a hot line, glowing, until it breaks up
   // (added as light, so it glows hot on dark and never turns muddy)
   // a half-bright yellow reads olive, so the line is lit at full strength and fades by its width
-  float hot = clamp(amount * line * 2.0, 0.0, 1.0) * solid;
+  float hot = clamp(press() * line * 2.0, 0.0, 1.0) * solid;
   outc = mix(outc, mix(emberColour(1.0, c), vec3(1.0), 0.25), hot);
   gl_FragColor = vec4(clamp(outc, 0.0, 1.0), 1.0);
 }

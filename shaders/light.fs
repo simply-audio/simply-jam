@@ -7,7 +7,7 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
-    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.9, "DESCRIPTION": "pressure: how far the light takes over from the camera" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how far the light takes over from the camera (1 as tuned; 0 the picture untouched)" },
     { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 3, "DEFAULT": 0, "VALUES": [0, 1, 2, 3], "LABELS": ["soft key", "venetian blinds", "pool caustics", "leaf dapple"] },
     { "NAME": "room", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.6, "DESCRIPTION": "how far the room behind the figure sinks into the dark" },
@@ -77,10 +77,17 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 1 is the look as tuned: it rests at REST and the music pushes it
+// from there. amount scales it all down to 0, the picture as it came in.
+const float REST = 0.9;
+float press() { return REST * amount; }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float midsNow() { return reactK() * sigB().g; }
 
@@ -254,5 +261,5 @@ void main() {
     vec3 litC = c * mix(shadeC, sunC * 1.5 * facing, sun);
     outc = mix(litC * mix(1.0, roomLit * 1.5, 1.0 - fig), litC, fig);
   }
-  gl_FragColor = vec4(clamp(mix(c, outc, amount), 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(clamp(mix(c, outc, press()), 0.0, 1.0), 1.0);
 }

@@ -7,7 +7,7 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
-    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.4 },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how strong the melt is: 1 rests where it was tuned and kicks and mids push it on; 0 the picture untouched" },
     { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 5, "DEFAULT": 0, "VALUES": [0,1,2,3,4,5], "LABELS": ["smoke figure", "pixel sort", "room melt", "liquid room", "pixel rain", "colour bleed"] },
     { "NAME": "figureOnTop", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0 },
@@ -75,10 +75,17 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 1 is the look as tuned: it rests at REST and the music pushes it
+// from there. amount scales it all down to 0, the picture as it came in.
+const float REST = 0.4;
+float press() { return REST * amount; }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float midsNow() { return reactK() * sigB().g; }
 
@@ -127,7 +134,7 @@ vec2 curl(vec2 p, float t) {
 }
 vec3 cam(vec2 uv) { return IMG_NORM_PIXEL(inputImage, uv).rgb; }
 float amtOf(float ke, float me, float kick, float mids) {
-  return clamp(amount + kickAmt * ke * kick + midsAmt * me * mids, 0.0, 1.0);
+  return clamp(press() + kickAmt * ke * kick + midsAmt * me * mids, 0.0, 1.0);
 }
 // FX 80: 1 where the figure has dissolved (tops go first: y up, so 1 - uv.y is the bottom… the original's f.uv was y down)
 float gone(vec2 uv, float k) {
@@ -189,12 +196,12 @@ vec4 bufPass(vec2 uv, float m, float kick, float mids) {
     v += normalize(p + 1e-5) * ring * 0.012;
     v /= vec2(aspect, 1.0);
     vec3 prev = IMG_NORM_PIXEL(buf, uv - v).rgb;
-    float k = amt > 0.002 ? mix(0.80, 0.975, amount) * smoothstep(0.0, 0.15, amt) : 0.0;
+    float k = amt > 0.002 ? mix(0.80, 0.975, press()) * smoothstep(0.0, 0.15, amt) : 0.0;
     return vec4(mix(c, prev, k * (1.0 - fresh)), 1.0);
   }
   if (m < 4.5) {                                   // FX 228 pixel rain: drops fall from hats
     vec2 texel = 1.0 / RENDERSIZE;
-    float amt = clamp(0.5 * amount + highsAmt * highsNow() + kickAmt * 0.5 * kick, 0.0, 1.0);
+    float amt = clamp(0.5 * press() + highsAmt * highsNow() + kickAmt * 0.5 * kick, 0.0, 1.0);
     float col = floor((isf_FragNormCoord.x * RENDERSIZE.x) / 2.0);
     float speed = mix(3.0, 11.0, h31(vec3(col, 7.0, 1.0))) * dt * 60.0;
     vec3 cA = vec3(0.0); float iA = 0.0;
@@ -226,7 +233,7 @@ vec4 bufPass(vec2 uv, float m, float kick, float mids) {
     best = max(best, s.a);
   }
   best = max(best, IMG_NORM_PIXEL(buf, uv).a);
-  float life = mix(0.4, 3.0, amount) + 1e-3;
+  float life = mix(0.4, 3.0, press()) + 1e-3;
   float dens = max(best - dt / life, 0.0) * (1.0 - fresh);
   return vec4(w > 1e-3 ? acc / w : vec3(0.0), dens);
 }
@@ -282,5 +289,5 @@ void main() {
     vec3 room = mix(c, inked, smoothstep(0.0, 1.0, b.a) * 0.85 * smoothstep(0.0, 0.08, amt));
     col = mix(room, c, fig);
   }
-  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(clamp(mix(c, col, amount), 0.0, 1.0), 1.0);
 }

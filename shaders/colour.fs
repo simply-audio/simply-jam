@@ -7,7 +7,7 @@
     { "NAME": "depth", "TYPE": "depth" },
     { "NAME": "wave", "TYPE": "audio" },
     { "NAME": "spectrum", "TYPE": "audioFFT" },
-    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.25, "DESCRIPTION": "pressure: how far the look goes; rests at 0.25 so kicks and mids still push it (1 = a steady look; hue rotate: the angle in turns)" },
+    { "NAME": "amount", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 1.0, "DESCRIPTION": "how strong the look is: 1 rests where it was tuned (a quarter of the way) and kicks and mids push it on; 0 the picture untouched (hue rotate: the angle, a quarter turn at rest)" },
     { "NAME": "react", "TYPE": "float", "MIN": 0.0, "MAX": 1.0, "DEFAULT": 0.5, "DESCRIPTION": "how much the music moves it: 0 holds it still, 0.5 as tuned, 1 twice as much" },
     { "NAME": "mode", "TYPE": "long", "MIN": 0, "MAX": 20, "DEFAULT": 0,
       "VALUES": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
@@ -108,10 +108,17 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
 float reactK() { return 2.0 * react; }
+// amount 1 is the look as tuned: it rests at REST and the music pushes it
+// from there. amount scales it all down to 0, the picture as it came in.
+const float REST = 0.25;
+float press() { return REST * amount; }
 float kickNow() { return reactK() * max(sigA().r, beatSync * exp(-6.0 * PHASE)); }
 float lowsNow() { return reactK() * sigB().r; }
 float midsNow() { return reactK() * sigB().g; }
@@ -385,8 +392,8 @@ const float HUE_KICK_JUMP = 0.1;   // with pressure up: extra knock per kick, ×
 const float HUE_MIDS_DRIFT = 0.08; // with pressure up: mids push further, × amount
 const float HUE_SAT   = 0.35;      // extra saturation as it turns
 vec3 hueLook(vec3 cam, float k, float m) {
-  float a = clamp(amount + HUE_KICK_ENGAGE * kickAmt * k + HUE_MIDS_ENGAGE * midsAmt * m, 0.0, 1.0);
-  float turns = HUE_TURNS * a + amount * (HUE_KICK_JUMP * k + HUE_MIDS_DRIFT * m);
+  float a = clamp(press() + HUE_KICK_ENGAGE * kickAmt * k + HUE_MIDS_ENGAGE * midsAmt * m, 0.0, 1.0);
+  float turns = HUE_TURNS * a + press() * (HUE_KICK_JUMP * k + HUE_MIDS_DRIFT * m);
   vec3 c = hueRotate(cam, turns);
   float l = lumaOf(c);
   return max(mix(vec3(l), c, 1.0 + HUE_SAT * sin(3.14159 * a)), 0.0);
@@ -422,8 +429,8 @@ vec3 yiqTint(float luma, float h, float sat) {
   return vec3(luma + 0.956 * i + 0.621 * q, luma - 0.272 * i - 0.647 * q, luma - 1.106 * i + 1.703 * q);
 }
 vec3 splitLook(vec2 uv, vec3 cam, float k, float m) {
-  float push = clamp(CS_MIDS_GAIN * midsAmt * m + CS_PRESS_PUSH * amount + CS_KICK_ENGAGE * kickAmt * k, 0.0, 1.0);
-  float sat = CS_SAT_BASE + CS_SAT_PRESS * amount + CS_KICK_SAT * k;
+  float push = clamp(CS_MIDS_GAIN * midsAmt * m + CS_PRESS_PUSH * press() + CS_KICK_ENGAGE * kickAmt * k, 0.0, 1.0);
+  float sat = CS_SAT_BASE + CS_SAT_PRESS * press() + CS_KICK_SAT * k;
   float h = CS_WARM_HUE + CS_HUE_SWING * m;
   float l = lumaOf(cam);
   float s = sat * (0.3 + 0.7 * sin(3.14159 * clamp(l, 0.0, 1.0)));
@@ -579,7 +586,7 @@ const float SU_MIDS_ENGAGE = 0.85;  // slow mids alone bring the sunset in — t
 const float SU_KICK_ENGAGE = 0.2;
 const float SU_KICK_FLARE = 0.6;
 vec3 sunsetLook(vec2 uv, vec3 cam, float k) {
-  float g = clamp(amount + SU_MIDS_ENGAGE * midsAmt * stB().g + SU_KICK_ENGAGE * kickAmt * k, 0.0, 1.0);
+  float g = clamp(press() + SU_MIDS_ENGAGE * midsAmt * stB().g + SU_KICK_ENGAGE * kickAmt * k, 0.0, 1.0);
   float aspect = RENDERSIZE.x / max(RENDERSIZE.y, 1.0);
   vec2 toSun = normalize((SU_POS - uv) * vec2(aspect, 1.0)) / vec2(aspect, 1.0);
   float sh = 0.0;
@@ -732,7 +739,7 @@ const float BR_KICK_PUNCH = 0.35;
 const float BR_METER = 0.8;
 vec3 bandsLook(vec3 cam, float k) {
   vec3 band = vec3(lowsNow(), midsNow(), highsNow());
-  float w = clamp(amount + BR_AUDIO_ENGAGE * midsAmt * max(band.r, max(band.g, band.b)), 0.0, 1.0);
+  float w = clamp(press() + BR_AUDIO_ENGAGE * midsAmt * max(band.r, max(band.g, band.b)), 0.0, 1.0);
   vec3 g = 1.0 + BR_DEPTH * w * (band - 0.5) * 2.0;
   g.r += BR_KICK_PUNCH * kickAmt * k * w;
   vec3 col = cam * max(g, vec3(0.0));
@@ -785,7 +792,7 @@ void main() {
   float md = floor(mode + 0.5);
   float w = floor(where + 0.5);
   vec2 eng = engageOf(md, w, cycle, highsAmt);
-  float amt = clamp(amount + eng.x * kickAmt * k + eng.y * midsAmt * m, 0.0, 1.0);
+  float amt = clamp(press() + eng.x * kickAmt * k + eng.y * midsAmt * m, 0.0, 1.0);
   float onFig = step(0.5, w) * step(w, 1.5);
   float region = regionAt(uv);
 
@@ -815,5 +822,5 @@ void main() {
   vec3 col = mix(cam, look, region);
   // cel on the figure: the silhouette ink sits on both sides of the cut
   if (md < 0.5 && onFig > 0.5) col *= 1.0 - CEL_INK * amt * celRim(uv, k);
-  gl_FragColor = vec4(col, 1.0);
+  gl_FragColor = vec4(mix(cam, col, amount), 1.0);
 }

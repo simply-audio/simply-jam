@@ -81,6 +81,9 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
@@ -140,14 +143,16 @@ vec3 gel(float k) {
 }
 
 // where beam i points: a new place per beat (eased in over the first part
-// of the beat), plus a slow sway so it never stands dead still
+// of the beat) while music plays, plus a slow sway so it never stands dead
+// still. In silence, or at react 0, the beams hang and only sway.
 float tiltOf(float i) {
   float b = floor(BEAT);
   float from = hash(vec2(i * 7.31, b - 1.0));
   float to = hash(vec2(i * 7.31, b));
   float pos = mix(from, to, smoothstep(0.0, 0.45, PHASE)) - 0.5;
   float sway = 0.18 * sin(TIME * 0.37 + i * 1.7);
-  return clamp(swing * pos * 2.0 * MAX_TILT + sway * (0.4 + 0.6 * swing), -MAX_TILT, MAX_TILT);
+  float pan = swing * musicOn() * min(reactK(), 1.0);
+  return clamp(pan * pos * 2.0 * MAX_TILT + sway * (0.4 + 0.6 * swing), -MAX_TILT, MAX_TILT);
 }
 
 void main() {

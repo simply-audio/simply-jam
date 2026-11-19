@@ -76,6 +76,9 @@ vec4 sigPass() {
 }
 vec4 sigA() { return IMG_NORM_PIXEL(sig, vec2(0.25, 0.5)); }
 vec4 sigB() { return IMG_NORM_PIXEL(sig, vec2(0.75, 0.5)); }
+// 1 while music plays, 0 in silence (the lows or the highs heard): a pulse
+// on the beat clock alone is gated on it, so a look sits still in silence.
+float musicOn() { return smoothstep(0.05, 0.2, max(sigB().r, sigB().b)); }
 float kickAge() { return sigA().a; }   // seconds since the last kick (60 = none for a minute)
 float depthReady() { return DEPTH_READY; }   // tussen's own: 1 while the depth model's map is bound
 // react 0.5 is the music as the shader was tuned; 0 holds it still, 1 doubles it.
@@ -169,7 +172,7 @@ vec4 mistPass(vec2 uv) {
   float along;
   float dist = segDist(uv * vec2(aspect, 1.0), a * vec2(aspect, 1.0), mix(a, b, drawn) * vec2(aspect, 1.0), along);
   float w = (0.05 + 0.12 * scale) * (0.7 + 0.6 * kickAmt);
-  float wipe = (1.0 - smoothstep(w * 0.6, w, dist + 0.02 * vnoise(uv * 40.0))) * step(age, 0.3) * kickAmt;
+  float wipe = (1.0 - smoothstep(w * 0.6, w, dist + 0.02 * vnoise(uv * 40.0))) * step(age, 0.3) * kickAmt * min(reactK(), 1.0);
   m = min(m, 1.0 - wipe);
   return vec4(m, 0.0, 0.0, 1.0);
 }
