@@ -16,7 +16,7 @@ permissions:
 env:
   CHECKER_VERSION: "1.0.0"
   CHECKER_TARGET: x86_64-unknown-linux-musl
-  CHECKER_SHA256: bc2995d241bb3cbcda438fa2ef84f943b1178f4985639c7cdf4c89308bc520d6
+  CHECKER_SHA256: 70e1e07fbea36a558556002a8da0e7c8928c7bf0bd62ea7ed3c7210e6acea0ab
 
 jobs:
   check:
